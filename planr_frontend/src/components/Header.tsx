@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
+import { LogIn } from "lucide-react";
 
 export function Header() {
   return (
@@ -11,8 +12,10 @@ export function Header() {
             <span className="text-xl font-bold text-gray-800">Planr</span>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline">Connexion</Button>
-            <Button>Inscription</Button>
+            <Button>
+              <LogIn className="mr-2" />
+              M'authentifier
+            </Button>
           </div>
         </div>
       </div>
