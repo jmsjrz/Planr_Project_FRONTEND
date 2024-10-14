@@ -22,6 +22,7 @@ export default function ForgotPasswordPage() {
     try {
       await requestPasswordReset(email);
       setSuccessMessage("Lien de réinitialisation envoyé avec succès !");
+      setTimeout(() => setSuccessMessage(""), 5000); // Masquer le message après 5 secondes
     } catch (error) {
       setErrorMessage(
         "Échec de la demande de réinitialisation. Veuillez réessayer."

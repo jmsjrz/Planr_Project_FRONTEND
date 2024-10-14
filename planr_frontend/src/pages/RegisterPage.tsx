@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { registerUser } from "@/utils/api"; // Fonction d'inscription
+import { registerUser, checkExistingRegistration } from "@/utils/api"; // Fonction d'inscription et vérification OTP
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,21 +25,27 @@ export default function RegisterPage() {
     }
 
     try {
-      // Appel de l'API pour l'inscription
+      // Vérifie si l'utilisateur est déjà en attente de validation OTP
+      const existingRegistration = await checkExistingRegistration(email);
+      if (existingRegistration && existingRegistration.guest_token) {
+        // Si un guest_token existe pour cet email, rediriger vers la page OTP
+        localStorage.setItem("guest_token", existingRegistration.guest_token);
+        localStorage.setItem("registered_email", email);
+        navigate("/verify-otp");
+        return;
+      }
+
+      // Si l'utilisateur n'a pas d'OTP en attente, procéder à l'inscription
       const response = await registerUser(email, password);
-
-      // Vérifier que la réponse contient bien les données attendues (guest_token, etc.)
       if (response && response.guest_token) {
-        // Stocker le guest_token pour la vérification OTP
+        // Stocker le guest_token et rediriger vers la page OTP
         localStorage.setItem("guest_token", response.guest_token);
-
-        // Rediriger vers la page de validation OTP
+        localStorage.setItem("registered_email", email);
         navigate("/verify-otp");
       } else {
         throw new Error("Réponse inattendue du serveur.");
       }
     } catch (error: any) {
-      // Si Axios renvoie une erreur, afficher l'erreur spécifique
       const errorMsg =
         error.response?.data?.message ||
         "Échec de l'inscription. Veuillez réessayer.";
@@ -53,6 +59,9 @@ export default function RegisterPage() {
     <div className="flex flex-col min-h-screen items-center justify-center">
       <div className="w-full max-w-md space-y-8">
         <h1 className="text-2xl font-bold text-center">Créer un compte</h1>
+        {errorMessage && (
+          <p className="text-red-600 text-center">{errorMessage}</p>
+        )}
         <form onSubmit={handleRegister} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -85,9 +94,6 @@ export default function RegisterPage() {
               required
             />
           </div>
-          {errorMessage && (
-            <p className="text-red-600 text-center">{errorMessage}</p>
-          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Inscription en cours..." : "S'inscrire"}
           </Button>

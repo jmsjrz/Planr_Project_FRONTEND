@@ -3,45 +3,42 @@ import axios from "axios";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
-// Fonction d'inscription (via email ou téléphone)
+// Fonction pour vérifier si un email est déjà enregistré et en attente de validation OTP
+export const checkExistingRegistration = async (email: string) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/users/check_registration/`, { email });
+    return response.data;
+  } catch (error) {
+    console.error("Erreur lors de la vérification de l'email", error);
+    return null;
+  }
+};
+
+// Fonction d'inscription (via email)
 export const registerUser = async (email: string, password: string) => {
-  const data: { email?: string; password?: string } = {};
+  const data = { email, password };
 
-  // Ajouter les valeurs uniquement si elles existent
-  if (email) {
-    data.email = email;
-  }
-  if (password) {
-    data.password = password;
-  }
-
-  // Envoyer la requête avec les données valides
   const response = await axios.post(`${API_BASE_URL}/users/register/`, data);
   return response.data;
 };
 
 // Fonction pour vérifier l'OTP
 export const verifyOtp = async (otp: string, guestToken: string) => {
-  // Le body contient l'OTP en tant que simple chaîne de caractères
   const response = await axios.post(
     `${API_BASE_URL}/users/verify-otp/`,
-    { otp },  // Le body ne contient que l'OTP fourni par l'utilisateur
+    { otp },
     {
       headers: {
-        Authorization: `Bearer ${guestToken}`,  // guestToken utilisé dans l'en-tête
+        Authorization: `Bearer ${guestToken}`,
       },
     }
   );
   return response.data;  // Renvoie les données du serveur (JWT tokens)
 };
 
-// Fonction pour authentifier un utilisateur (email/numéro de téléphone + mot de passe ou OTP)
+// Fonction pour authentifier un utilisateur
 export const loginUser = async (email?: string, phoneNumber?: string, password?: string) => {
-  const data = {
-    email: email || undefined,
-    phone_number: phoneNumber || undefined,
-    password: password || undefined,
-  };
+  const data = { email, phone_number: phoneNumber, password };
 
   const response = await axios.post(`${API_BASE_URL}/users/login/`, data);
   return response.data;

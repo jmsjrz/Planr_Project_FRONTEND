@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom"; // Importation de useNavigate
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,16 +11,21 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>("");
   const { login } = useAuth(); // Récupération de la fonction login depuis le contexte
+  const navigate = useNavigate(); // Initialisation du hook navigate pour la redirection
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setErrorMessage("");
+
     try {
-      await login(email, password);
+      await login(email, password); // Appel de la fonction de connexion
+      // Si la connexion est réussie, redirection vers le tableau de bord
+      navigate("/dashboard");
     } catch (error) {
-      console.error("Échec de la connexion", error);
-      // Affiche une notification d'échec
+      setErrorMessage("Échec de la connexion. Vérifiez vos identifiants.");
     } finally {
       setLoading(false);
     }
@@ -40,6 +45,9 @@ export default function LoginPage() {
                 Entrez vos identifiants ci-dessous
               </p>
             </div>
+            {errorMessage && (
+              <p className="text-red-600 text-center">{errorMessage}</p>
+            )}
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
