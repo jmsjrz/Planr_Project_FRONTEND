@@ -8,22 +8,22 @@ import {
 export function TeamSection() {
   const teamMembers = [
     {
-      name: "Sophie Martin",
-      role: "Fondatrice & CEO",
+      name: "James JAROSZ",
+      role: "Fondateur & CEO",
       image: "/placeholder.svg",
     },
     {
-      name: "Thomas Dubois",
+      name: "James JAROSZ",
       role: "CTO",
       image: "/placeholder.svg",
     },
     {
-      name: "Emma Lefebvre",
+      name: "James JAROSZ",
       role: "Designer UX",
       image: "/placeholder.svg",
     },
     {
-      name: "Lucas Moreau",
+      name: "James JAROSZ",
       role: "Lead Developer",
       image: "/placeholder.svg",
     },

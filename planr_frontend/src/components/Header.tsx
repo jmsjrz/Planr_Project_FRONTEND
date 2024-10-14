@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
-import { LogIn } from "lucide-react";
+import { Calendar, LogIn } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export function Header() {
   return (
@@ -12,10 +12,13 @@ export function Header() {
             <span className="text-xl font-bold text-gray-800">Planr</span>
           </div>
           <div className="flex space-x-2">
-            <Button>
-              <LogIn className="mr-2" />
-              M'authentifier
-            </Button>
+            {/* Bouton "Me connecter" redirigeant vers la page de connexion */}
+            <Link to="/login">
+              <Button>
+                <LogIn className="mr-2" />
+                Authentification
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
