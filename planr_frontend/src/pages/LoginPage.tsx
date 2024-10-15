@@ -13,8 +13,7 @@ export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
-  const { login } = useAuth(); // Récupérer la fonction login du contexte
+  const { login, errorMessage, setErrorMessage } = useAuth(); // Récupérer la fonction login et errorMessage du contexte
 
   const handleLoginEmail = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,6 +1,7 @@
+// src/pages/OtpValidationPage.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { verifyOtp, resendOtp } from "@/utils/api"; // Import de la fonction resendOtp
+import { verifyOtp, resendOtp } from "@/utils/api";
 import {
   InputOTP,
   InputOTPGroup,
@@ -8,11 +9,12 @@ import {
   InputOTPSlot,
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 
 export default function OtpValidationPage() {
   const [otp, setOtp] = useState<string>(""); // Stockage de l'OTP complet
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
+  const { errorMessage, setErrorMessage, setAuthenticatedUser } = useAuth(); // Utiliser setAuthenticatedUser
   const [timeLeft, setTimeLeft] = useState(900); // Temps restant (15 minutes = 900 secondes)
   const [canResend, setCanResend] = useState(false); // Statut du bouton de renvoi d'OTP
   const navigate = useNavigate();
@@ -26,7 +28,7 @@ export default function OtpValidationPage() {
   useEffect(() => {
     if (timeLeft > 0) {
       const timer = setInterval(() => {
-        setTimeLeft(timeLeft - 1);
+        setTimeLeft((prevTime) => prevTime - 1);
       }, 1000); // Réduit d'une seconde chaque seconde
       return () => clearInterval(timer); // Nettoyage à la fin du composant
     } else {
@@ -47,6 +49,7 @@ export default function OtpValidationPage() {
       setTimeLeft(900); // Réinitialise le timer après renvoi d'OTP
       setCanResend(false); // Désactive à nouveau le bouton de renvoi
     } catch (error) {
+      console.error("Erreur lors du renvoi de l'OTP :", error);
       setErrorMessage("Échec du renvoi de l'OTP. Veuillez réessayer.");
     }
   };
@@ -64,13 +67,26 @@ export default function OtpValidationPage() {
 
       // Appel de l'API pour vérifier l'OTP
       const response = await verifyOtp(otp, guestToken);
+      console.log("Réponse de vérification OTP :", response);
 
       // Stocker les tokens JWT renvoyés par l'API
-      localStorage.setItem("access_token", response.access);
-      localStorage.setItem("refresh_token", response.refresh);
+      const accessToken = response.access || response.access_token;
+      const refreshToken = response.refresh || response.refresh_token;
 
-      navigate("/dashboard"); // Redirection vers le tableau de bord après succès
+      if (accessToken && refreshToken) {
+        localStorage.setItem("access_token", accessToken);
+        localStorage.setItem("refresh_token", refreshToken);
+        localStorage.removeItem("guest_token"); // Supprimer le guest_token
+
+        // Mettre à jour l'état utilisateur dans le contexte
+        setAuthenticatedUser();
+
+        navigate("/dashboard"); // Redirection vers le tableau de bord après succès
+      } else {
+        setErrorMessage("Échec de la vérification. Veuillez réessayer.");
+      }
     } catch (error) {
+      console.error("Erreur lors de la vérification de l'OTP :", error);
       setErrorMessage("OTP invalide ou expiré, veuillez réessayer.");
     } finally {
       setLoading(false);
@@ -88,8 +104,7 @@ export default function OtpValidationPage() {
     <div className="flex flex-col min-h-screen items-center justify-center">
       <h1 className="text-2xl font-bold text-center">Vérification OTP</h1>
       <p className="text-center text-muted-foreground">
-        Entrez le code OTP envoyé à votre adresse e-mail pour vérifier votre
-        compte.
+        Entrez le code OTP envoyé à votre adresse e-mail ou numéro de téléphone.
       </p>
       {errorMessage && (
         <p className="text-red-600 text-center">{errorMessage}</p>

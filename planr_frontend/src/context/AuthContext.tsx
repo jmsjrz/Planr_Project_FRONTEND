@@ -23,7 +23,10 @@ export interface AuthContextType {
   login: (emailOrPhone: string, password?: string) => Promise<void>;
   register: (emailOrPhone: string, password?: string) => Promise<void>;
   logout: () => void;
+  setAuthenticatedUser: () => void; // Nouvelle fonction pour mettre à jour l'utilisateur
   loading: boolean;
+  errorMessage: string;
+  setErrorMessage: React.Dispatch<React.SetStateAction<string>>;
 }
 
 // Création du contexte AuthContext
@@ -33,7 +36,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null); // État utilisateur
   const [loading, setLoading] = useState(true); // État de chargement
+  const [errorMessage, setErrorMessage] = useState<string>(""); // Message d'erreur
   const navigate = useNavigate();
+
+  // Fonction pour mettre à jour l'état utilisateur après la vérification de l'OTP
+  const setAuthenticatedUser = useCallback(() => {
+    const accessToken = localStorage.getItem("access_token");
+    if (accessToken) {
+      const userData = parseJwt(accessToken);
+      setUser(userData);
+    }
+  }, []);
 
   // Fonction de déconnexion
   const logout = useCallback(async () => {
@@ -50,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Supprimer les tokens du localStorage
     localStorage.removeItem("access_token");
     localStorage.removeItem("refresh_token");
+    localStorage.removeItem("guest_token");
 
     setUser(null); // Réinitialiser l'état utilisateur
     navigate("/login"); // Redirige vers la page de connexion
@@ -111,49 +125,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await loginUser(emailOrPhone, undefined, password);
         console.log("Réponse de connexion :", response);
 
-        // Vérifier que les tokens sont présents dans la réponse
         if (
           (response.access || response.access_token) &&
           (response.refresh || response.refresh_token)
         ) {
-          // Stocker les tokens
+          // L'utilisateur est authentifié
           const accessToken = response.access || response.access_token;
           const refreshToken = response.refresh || response.refresh_token;
 
           localStorage.setItem("access_token", accessToken);
           localStorage.setItem("refresh_token", refreshToken);
 
-          // Extraire les données utilisateur du token JWT
           const userData = parseJwt(accessToken);
           console.log("Données utilisateur extraites :", userData);
           setUser(userData);
 
-          navigate("/dashboard"); // Redirige vers le dashboard
+          navigate("/dashboard"); // Redirige vers le tableau de bord
+        } else if (response.guest_token) {
+          // L'utilisateur doit vérifier son OTP
+          localStorage.setItem("guest_token", response.guest_token);
+
+          navigate("/verify-otp"); // Redirige vers la page de vérification OTP
         } else {
           console.error("Les tokens ne sont pas présents dans la réponse");
+          setErrorMessage(
+            "Échec de la connexion. Veuillez vérifier vos informations."
+          );
         }
       } catch (error) {
         console.error("Erreur de connexion", error);
+        setErrorMessage("Erreur lors de la connexion. Veuillez réessayer.");
       }
     },
     [navigate]
   );
 
-  // Fonction d'inscription
+  // Fonction d'inscription (inchangée)
   const register = useCallback(
     async (emailOrPhone: string, password?: string) => {
       try {
-        await registerUser(emailOrPhone, password);
-        navigate("/login"); // Redirige vers la page de connexion
+        const response = await registerUser(emailOrPhone, password);
+
+        if (response.guest_token) {
+          localStorage.setItem("guest_token", response.guest_token);
+          navigate("/verify-otp"); // Redirige vers la page de vérification OTP
+        } else {
+          console.error("Échec de l'inscription, guest_token non reçu");
+          setErrorMessage(
+            "Échec de l'inscription. Veuillez vérifier vos informations."
+          );
+        }
       } catch (error) {
         console.error("Erreur d'inscription", error);
+        setErrorMessage("Erreur lors de l'inscription. Veuillez réessayer.");
       }
     },
     [navigate]
   );
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        setAuthenticatedUser, // On ajoute la fonction au contexte
+        loading,
+        errorMessage,
+        setErrorMessage,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
