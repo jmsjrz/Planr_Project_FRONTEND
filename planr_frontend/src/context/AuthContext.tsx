@@ -1,53 +1,176 @@
 // src/context/AuthContext.tsx
-import { createContext, useState, useContext, ReactNode } from "react";
-import { loginUser, registerUser, requestPasswordReset } from "@/utils/api";
+import {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useEffect,
+  useCallback,
+} from "react";
+import {
+  loginUser,
+  registerUser,
+  logoutUser,
+  isTokenExpired,
+  refreshAccessToken,
+} from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 
-interface AuthContextType {
+// Déclaration du type AuthContext
+export interface AuthContextType {
   user: any;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  login: (emailOrPhone: string, password?: string) => Promise<void>;
+  register: (emailOrPhone: string, password?: string) => Promise<void>;
   logout: () => void;
+  loading: boolean;
 }
 
+// Création du contexte AuthContext
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Fournisseur de contexte pour l'authentification
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(null); // État utilisateur
+  const [loading, setLoading] = useState(true); // État de chargement
   const navigate = useNavigate();
 
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await loginUser(email, undefined, password);
-      setUser(response.data.user); // Hypothèse : le backend renvoie l'utilisateur
-      navigate("/dashboard"); // Redirection après connexion
-    } catch (error) {
-      console.error("Erreur de connexion", error);
-      // Gestion des erreurs ici (par exemple, notification d'échec)
-    }
-  };
+  // Fonction de déconnexion
+  const logout = useCallback(async () => {
+    const refreshToken = localStorage.getItem("refresh_token");
 
-  const register = async (email: string, password: string) => {
-    try {
-      await registerUser(email, password);
-      navigate("/login");
-    } catch (error) {
-      console.error("Erreur d'inscription", error);
+    if (refreshToken) {
+      try {
+        await logoutUser(refreshToken); // Appel de l'API pour blacklister le token de rafraîchissement
+      } catch (error) {
+        console.error("Erreur lors de la déconnexion", error);
+      }
     }
-  };
 
-  const logout = () => {
-    setUser(null);
-    navigate("/login");
-  };
+    // Supprimer les tokens du localStorage
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+
+    setUser(null); // Réinitialiser l'état utilisateur
+    navigate("/login"); // Redirige vers la page de connexion
+  }, [navigate]);
+
+  // Écouteur pour l'événement de déconnexion
+  useEffect(() => {
+    const handleLogout = () => {
+      logout();
+    };
+
+    window.addEventListener("logout", handleLogout);
+
+    return () => {
+      window.removeEventListener("logout", handleLogout);
+    };
+  }, [logout]);
+
+  // Vérifie si un token est présent au chargement de l'application
+  useEffect(() => {
+    const initializeAuth = async () => {
+      const accessToken = localStorage.getItem("access_token");
+
+      if (accessToken) {
+        if (isTokenExpired(accessToken)) {
+          try {
+            await refreshAccessToken();
+
+            const newAccessToken = localStorage.getItem("access_token");
+            if (newAccessToken) {
+              const userData = parseJwt(newAccessToken);
+              setUser(userData);
+            } else {
+              console.error(
+                "Access token non disponible après le rafraîchissement"
+              );
+              logout();
+            }
+          } catch (error) {
+            console.error("Session expirée, déconnexion");
+            logout();
+          }
+        } else {
+          // Token valide, extraire les données utilisateur du token
+          const userData = parseJwt(accessToken);
+          setUser(userData);
+        }
+      } else {
+        setLoading(false);
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, [logout]);
+
+  // Fonction de connexion
+  const login = useCallback(
+    async (emailOrPhone: string, password?: string) => {
+      try {
+        const response = await loginUser(emailOrPhone, undefined, password);
+        console.log("Réponse de connexion :", response);
+
+        // Stocker les tokens
+        localStorage.setItem("access_token", response.access);
+        localStorage.setItem("refresh_token", response.refresh);
+
+        // Extraire les données utilisateur du token JWT
+        const userData = parseJwt(response.access);
+        console.log("Données utilisateur extraites :", userData);
+        setUser(userData);
+
+        navigate("/dashboard"); // Redirige vers le dashboard
+      } catch (error) {
+        console.error("Erreur de connexion", error);
+      }
+    },
+    [navigate]
+  );
+
+  // Fonction d'inscription
+  const register = useCallback(
+    async (emailOrPhone: string, password?: string) => {
+      try {
+        await registerUser(emailOrPhone, password);
+        navigate("/login"); // Redirige vers la page de connexion
+      } catch (error) {
+        console.error("Erreur d'inscription", error);
+      }
+    },
+    [navigate]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// Fonction pour décoder le token JWT et extraire les données utilisateur
+const parseJwt = (token: string) => {
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => {
+          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+        })
+        .join("")
+    );
+
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Erreur lors du parsing du token JWT", error);
+    return null;
+  }
+};
+
+// Hook pour accéder au contexte d'authentification
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

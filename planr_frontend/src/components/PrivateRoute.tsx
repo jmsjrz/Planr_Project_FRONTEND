@@ -3,14 +3,17 @@ import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth(); // Récupère l'utilisateur et l'état de chargement
 
-  if (!user) {
-    // Si l'utilisateur n'est pas authentifié, on le redirige vers la page de login
-    return <Navigate to="/login" />;
+  if (loading) {
+    return <div>Chargement...</div>; // Affiche un indicateur de chargement pendant la vérification
   }
 
-  return children;
+  if (!user) {
+    return <Navigate to="/login" replace />; // Redirige vers login si l'utilisateur n'est pas authentifié
+  }
+
+  return children; // Si l'utilisateur est authentifié, affiche la page protégée
 };
 
 export default PrivateRoute;
