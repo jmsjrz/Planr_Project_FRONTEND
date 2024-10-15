@@ -1,5 +1,6 @@
 // /utils/api.ts
 import axios from "axios";
+import { jwtDecode } from "jwt-decode";
 
 const API_BASE_URL = "http://127.0.0.1:8000";
 
@@ -37,11 +38,19 @@ axios.interceptors.request.use(
 
 // Fonction utilitaire pour vérifier si le token JWT a expiré
 export const isTokenExpired = (token: string): boolean => {
-  const tokenParts = token.split("."); // JWT est composé de trois parties : header, payload, signature
-  const payload = JSON.parse(atob(tokenParts[1])); // On décode le payload
+  if (!token) {
+    console.error("Token indéfini ou vide");
+    return true; // Considérer le token comme expiré s'il est invalide
+  }
 
-  const now = Math.floor(Date.now() / 1000); // Temps actuel en secondes
-  return payload.exp < now; // Si la date d'expiration est passée
+  try {
+    const decodedToken: any = jwtDecode(token);
+    const now = Math.floor(Date.now() / 1000); // Temps actuel en secondes
+    return decodedToken.exp < now;
+  } catch (error) {
+    console.error("Erreur lors du décodage du token:", error);
+    return true; // Considérer le token comme expiré s'il ne peut pas être décodé
+  }
 };
 
 // Fonction pour vérifier si un email est déjà enregistré et en attente de validation OTP
@@ -114,6 +123,7 @@ export const loginUser = async (
   }
 
   const response = await axios.post(`${API_BASE_URL}/users/login/`, data);
+  console.log("Réponse de connexion :", response.data);
   return response.data;
 };
 
@@ -165,17 +175,27 @@ export const refreshAccessToken = async () => {
     const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
       refresh: refreshToken,
     });
+    console.log("Réponse du rafraîchissement du token :", response.data);
 
     // Stocke le nouveau access token et le nouveau refresh token (si rotation activée)
-    localStorage.setItem("access_token", response.data.access);
+    if (response.data.access) {
+      localStorage.setItem("access_token", response.data.access);
+    } else if (response.data.access_token) {
+      localStorage.setItem("access_token", response.data.access_token);
+    } else {
+      throw new Error("Access token non trouvé dans la réponse du rafraîchissement");
+    }
 
     // Si le backend retourne un nouveau refresh token (rotation activée), le stocker
     if (response.data.refresh) {
       localStorage.setItem("refresh_token", response.data.refresh);
+    } else if (response.data.refresh_token) {
+      localStorage.setItem("refresh_token", response.data.refresh_token);
     }
 
-    return response.data.access;
+    return response.data.access || response.data.access_token;
   } catch (error) {
+    console.error("Échec du rafraîchissement du token:", error);
     throw new Error("Failed to refresh token");
   }
 };

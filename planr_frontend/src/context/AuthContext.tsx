@@ -15,6 +15,7 @@ import {
   refreshAccessToken,
 } from "@/utils/api";
 import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 // Déclaration du type AuthContext
 export interface AuthContextType {
@@ -96,8 +97,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = parseJwt(accessToken);
           setUser(userData);
         }
-      } else {
-        setLoading(false);
       }
       setLoading(false);
     };
@@ -112,16 +111,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await loginUser(emailOrPhone, undefined, password);
         console.log("Réponse de connexion :", response);
 
-        // Stocker les tokens
-        localStorage.setItem("access_token", response.access);
-        localStorage.setItem("refresh_token", response.refresh);
+        // Vérifier que les tokens sont présents dans la réponse
+        if (
+          (response.access || response.access_token) &&
+          (response.refresh || response.refresh_token)
+        ) {
+          // Stocker les tokens
+          const accessToken = response.access || response.access_token;
+          const refreshToken = response.refresh || response.refresh_token;
 
-        // Extraire les données utilisateur du token JWT
-        const userData = parseJwt(response.access);
-        console.log("Données utilisateur extraites :", userData);
-        setUser(userData);
+          localStorage.setItem("access_token", accessToken);
+          localStorage.setItem("refresh_token", refreshToken);
 
-        navigate("/dashboard"); // Redirige vers le dashboard
+          // Extraire les données utilisateur du token JWT
+          const userData = parseJwt(accessToken);
+          console.log("Données utilisateur extraites :", userData);
+          setUser(userData);
+
+          navigate("/dashboard"); // Redirige vers le dashboard
+        } else {
+          console.error("Les tokens ne sont pas présents dans la réponse");
+        }
       } catch (error) {
         console.error("Erreur de connexion", error);
       }
@@ -152,18 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 // Fonction pour décoder le token JWT et extraire les données utilisateur
 const parseJwt = (token: string) => {
   try {
-    const base64Url = token.split(".")[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => {
-          return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-        })
-        .join("")
-    );
-
-    return JSON.parse(jsonPayload);
+    return jwtDecode(token);
   } catch (error) {
     console.error("Erreur lors du parsing du token JWT", error);
     return null;
