@@ -157,10 +157,18 @@ export const requestPasswordReset = async (email: string) => {
 
 // Fonction pour réinitialiser le mot de passe
 export const resetPassword = async (token: string, newPassword: string) => {
-  const response = await axios.post(`${API_BASE_URL}/users/reset-password/${token}/`, {
-    new_password: newPassword,
-  });
-  return response.data;
+  try {
+    const response = await axios.post(`${API_BASE_URL}/users/reset-password/${token}/`, {
+      new_password: newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.error || "Erreur lors de la réinitialisation du mot de passe.");
+    } else {
+      throw new Error("Une erreur est survenue, veuillez réessayer.");
+    }
+  }
 };
 
 // Fonction pour rafraîchir l'access token
