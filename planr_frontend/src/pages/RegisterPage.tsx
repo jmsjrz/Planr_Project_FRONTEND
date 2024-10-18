@@ -22,6 +22,7 @@ export default function RegisterPage() {
   const [errorMessage, setErrorMessage] = useState<string>("");
   const navigate = useNavigate();
 
+  // Gestion de l'inscription par email
   const handleRegisterEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -40,12 +41,16 @@ export default function RegisterPage() {
         navigate("/verify-otp");
       }
     } catch (error: any) {
-      setErrorMessage("Échec de l'inscription. Veuillez réessayer.");
+      const errorMessage =
+        error.message || "Échec de l'inscription. Veuillez réessayer.";
+      console.error("Erreur d'inscription par email :", errorMessage);
+      setErrorMessage(errorMessage); // On affiche l'erreur précise
     } finally {
       setLoading(false);
     }
   };
 
+  // Gestion de l'inscription par téléphone
   const handleRegisterPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -58,7 +63,10 @@ export default function RegisterPage() {
         navigate("/verify-otp");
       }
     } catch (error: any) {
-      setErrorMessage("Échec de l'inscription. Veuillez réessayer.");
+      const errorMessage =
+        error.message || "Échec de l'inscription. Veuillez réessayer.";
+      console.error("Erreur d'inscription par téléphone :", errorMessage);
+      setErrorMessage(errorMessage); // On affiche l'erreur précise
     } finally {
       setLoading(false);
     }
@@ -75,6 +83,7 @@ export default function RegisterPage() {
             <TabsTrigger value="phone">Téléphone</TabsTrigger>
           </TabsList>
 
+          {/* Inscription par Email */}
           <TabsContent value="email">
             <Card>
               <CardHeader>
@@ -139,6 +148,7 @@ export default function RegisterPage() {
             </Card>
           </TabsContent>
 
+          {/* Inscription par Téléphone */}
           <TabsContent value="phone">
             <Card>
               <CardHeader>

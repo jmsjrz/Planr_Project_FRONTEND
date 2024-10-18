@@ -1,4 +1,3 @@
-// src/pages/OtpValidationPage.tsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { verifyOtp, resendOtp } from "@/utils/api";
@@ -85,9 +84,17 @@ export default function OtpValidationPage() {
       } else {
         setErrorMessage("Échec de la vérification. Veuillez réessayer.");
       }
-    } catch (error) {
-      console.error("Erreur lors de la vérification de l'OTP :", error);
-      setErrorMessage("OTP invalide ou expiré, veuillez réessayer.");
+    } catch (error: any) {
+      // On s'assure d'afficher le bon message d'erreur provenant de l'API
+      const apiErrorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "OTP invalide ou expiré, veuillez réessayer.";
+      console.error(
+        "Erreur lors de la vérification de l'OTP :",
+        apiErrorMessage
+      );
+      setErrorMessage(apiErrorMessage); // Utilise l'erreur précise renvoyée par l'API
     } finally {
       setLoading(false);
     }
