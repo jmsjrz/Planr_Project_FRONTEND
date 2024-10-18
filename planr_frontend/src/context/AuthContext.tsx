@@ -137,24 +137,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           localStorage.setItem("refresh_token", refreshToken);
 
           const userData = parseJwt(accessToken);
-          console.log("Données utilisateur extraites :", userData);
           setUser(userData);
 
-          navigate("/dashboard"); // Redirige vers le tableau de bord
+          navigate("/dashboard");
         } else if (response.guest_token) {
-          // L'utilisateur doit vérifier son OTP
           localStorage.setItem("guest_token", response.guest_token);
-
-          navigate("/verify-otp"); // Redirige vers la page de vérification OTP
+          navigate("/verify-otp");
         } else {
-          console.error("Les tokens ne sont pas présents dans la réponse");
           setErrorMessage(
             "Échec de la connexion. Veuillez vérifier vos informations."
           );
         }
-      } catch (error) {
-        console.error("Erreur de connexion", error);
-        setErrorMessage("Erreur lors de la connexion. Veuillez réessayer.");
+      } catch (error: any) {
+        const errorMessage =
+          error.message || "Erreur lors de la connexion. Veuillez réessayer.";
+        console.error("Erreur de connexion détaillée :", error); // Ajout d'une log détaillée
+        setErrorMessage(errorMessage); // On affiche maintenant l'erreur précise dans l'interface
       }
     },
     [navigate]
@@ -175,9 +173,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             "Échec de l'inscription. Veuillez vérifier vos informations."
           );
         }
-      } catch (error) {
+      } catch (error: any) {
+        const errorMessage =
+          error.response?.data?.error ||
+          "Erreur lors de l'inscription. Veuillez réessayer.";
         console.error("Erreur d'inscription", error);
-        setErrorMessage("Erreur lors de l'inscription. Veuillez réessayer.");
+        setErrorMessage(errorMessage);
       }
     },
     [navigate]

@@ -36,6 +36,35 @@ axios.interceptors.request.use(
   }
 );
 
+// Intercepteur pour gérer les erreurs venant de l'API
+axios.interceptors.response.use(
+  (response) => response, 
+  (error) => {
+    if (axios.isAxiosError(error) && error.response) {
+      // Extraction améliorée du message d'erreur
+      let apiErrorMessage = "Une erreur est survenue."; // Fallback par défaut
+
+      // Si l'API renvoie un message d'erreur direct
+      if (error.response.data?.error) {
+        apiErrorMessage = error.response.data.error;
+      } 
+      // Si l'API renvoie un objet de validation ou un autre type de structure d'erreur
+      else if (typeof error.response.data === 'string') {
+        apiErrorMessage = error.response.data; 
+      } else if (error.response.data?.detail) {
+        apiErrorMessage = error.response.data.detail;
+      } else if (error.response.data?.message) {
+        apiErrorMessage = error.response.data.message;
+      } else {
+        apiErrorMessage = "Erreur réseau ou serveur. Veuillez réessayer.";
+      }
+
+      return Promise.reject(new Error(apiErrorMessage));
+    } else {
+      return Promise.reject(new Error("Erreur réseau ou serveur. Veuillez réessayer."));
+    }
+  }
+);
 // Fonction utilitaire pour vérifier si le token JWT a expiré
 export const isTokenExpired = (token: string): boolean => {
   if (!token) {

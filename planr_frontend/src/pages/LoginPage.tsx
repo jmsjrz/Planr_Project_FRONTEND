@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const { login, errorMessage, setErrorMessage } = useAuth(); // Récupérer la fonction login et errorMessage du contexte
+  const { login, errorMessage, setErrorMessage } = useAuth();
 
   const handleLoginEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,11 +21,10 @@ export default function LoginPage() {
     setErrorMessage("");
 
     try {
-      await login(email, password); // Utiliser la fonction login du contexte
-      // La redirection est gérée dans le contexte
+      await login(email, password);
     } catch (error: any) {
       console.error("Erreur lors de la connexion par email :", error);
-      setErrorMessage("Échec de la connexion. Veuillez réessayer.");
+      setErrorMessage(error.message || "Erreur de connexion."); // Ici, on affiche bien le message d'erreur précis
     } finally {
       setLoading(false);
     }
@@ -37,11 +36,10 @@ export default function LoginPage() {
     setErrorMessage("");
 
     try {
-      await login(phoneNumber); // Utiliser la fonction login du contexte
-      // La redirection est gérée dans le contexte
+      await login(phoneNumber);
     } catch (error: any) {
       console.error("Erreur lors de la connexion par téléphone :", error);
-      setErrorMessage("Échec de la connexion. Veuillez réessayer.");
+      setErrorMessage(error.message || "Erreur de connexion.");
     } finally {
       setLoading(false);
     }
