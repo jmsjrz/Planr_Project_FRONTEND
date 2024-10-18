@@ -38,25 +38,22 @@ axios.interceptors.request.use(
 
 // Intercepteur pour gérer les erreurs venant de l'API
 axios.interceptors.response.use(
-  (response) => response, 
+  (response) => response,
   (error) => {
-    if (axios.isAxiosError(error) && error.response) {
-      // Extraction améliorée du message d'erreur
-      let apiErrorMessage = "Une erreur est survenue."; // Fallback par défaut
+    console.error("Erreur interceptée dans Axios :", error);
 
-      // Si l'API renvoie un message d'erreur direct
+    if (axios.isAxiosError(error) && error.response) {
+      // Récupérer le message d'erreur spécifique renvoyé par l'API
+      let apiErrorMessage = "Une erreur est survenue.";
+
       if (error.response.data?.error) {
-        apiErrorMessage = error.response.data.error;
-      } 
-      // Si l'API renvoie un objet de validation ou un autre type de structure d'erreur
-      else if (typeof error.response.data === 'string') {
-        apiErrorMessage = error.response.data; 
+        apiErrorMessage = error.response.data.error;  // Message d'erreur standard
+      } else if (typeof error.response.data === "string") {
+        apiErrorMessage = error.response.data;  // Si l'erreur est directement une string
       } else if (error.response.data?.detail) {
-        apiErrorMessage = error.response.data.detail;
+        apiErrorMessage = error.response.data.detail;  // Message sous la clé "detail"
       } else if (error.response.data?.message) {
-        apiErrorMessage = error.response.data.message;
-      } else {
-        apiErrorMessage = "Erreur réseau ou serveur. Veuillez réessayer.";
+        apiErrorMessage = error.response.data.message;  // Message sous la clé "message"
       }
 
       return Promise.reject(new Error(apiErrorMessage));
@@ -65,6 +62,9 @@ axios.interceptors.response.use(
     }
   }
 );
+
+
+
 // Fonction utilitaire pour vérifier si le token JWT a expiré
 export const isTokenExpired = (token: string): boolean => {
   if (!token) {
@@ -186,19 +186,12 @@ export const requestPasswordReset = async (email: string) => {
 
 // Fonction pour réinitialiser le mot de passe
 export const resetPassword = async (token: string, newPassword: string) => {
-  try {
-    const response = await axios.post(`${API_BASE_URL}/users/reset-password/${token}/`, {
-      new_password: newPassword,
-    });
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.error || "Erreur lors de la réinitialisation du mot de passe.");
-    } else {
-      throw new Error("Une erreur est survenue, veuillez réessayer.");
-    }
-  }
+  const response = await axios.post(`${API_BASE_URL}/users/reset-password/${token}/`, {
+    new_password: newPassword,
+  });
+  return response.data;
 };
+
 
 // Fonction pour rafraîchir l'access token
 export const refreshAccessToken = async () => {

@@ -39,13 +39,21 @@ export default function ResetPasswordPage() {
 
     try {
       setLoading(true);
-      await resetPassword(token!, newPassword);
+      const response = await resetPassword(token!, newPassword);
+      console.log("Réponse de réinitialisation :", response);
       setSuccessMessage("Mot de passe réinitialisé avec succès.");
       setTimeout(() => {
         navigate("/login");
       }, 3000);
     } catch (error: any) {
-      setErrorMessage("Échec de la réinitialisation. Veuillez réessayer.");
+      // L'erreur venant de l'intercepteur est capturée et affichée
+      const apiErrorMessage =
+        error.message || "Une erreur est survenue, veuillez réessayer.";
+      console.error(
+        "Erreur lors de la réinitialisation du mot de passe :",
+        apiErrorMessage
+      );
+      setErrorMessage(apiErrorMessage); // Utilise l'erreur précise renvoyée par l'API
     } finally {
       setLoading(false);
     }

@@ -23,10 +23,16 @@ export default function ForgotPasswordPage() {
       await requestPasswordReset(email);
       setSuccessMessage("Lien de réinitialisation envoyé avec succès !");
       setTimeout(() => setSuccessMessage(""), 5000); // Masquer le message après 5 secondes
-    } catch (error) {
-      setErrorMessage(
-        "Échec de la demande de réinitialisation. Veuillez réessayer."
+    } catch (error: any) {
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Échec de la demande de réinitialisation. Veuillez réessayer.";
+      console.error(
+        "Erreur lors de la demande de réinitialisation :",
+        errorMessage
       );
+      setErrorMessage(errorMessage);
     } finally {
       setLoading(false);
     }
