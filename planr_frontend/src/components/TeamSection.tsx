@@ -35,8 +35,8 @@ export function TeamSection() {
         L'équipe derrière Planr
       </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {teamMembers.map((member) => (
-          <Card key={member.name}>
+        {teamMembers.map((member, index) => (
+          <Card key={index}>
             <CardHeader>
               <img
                 src={member.image}
