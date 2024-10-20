@@ -12,17 +12,47 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react"; // Icônes pour afficher/masquer le mot de passe
+
+// Fonction pour évaluer la force du mot de passe
+const evaluatePasswordStrength = (password: string) => {
+  let strength = 0;
+
+  if (password.length > 7) strength += 1;
+  if (/[A-Z]/.test(password)) strength += 1;
+  if (/[0-9]/.test(password)) strength += 1;
+  if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+
+  return strength;
+};
 
 export default function RegisterPage() {
   const [email, setEmail] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false); // État pour l'affichage du mot de passe
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false); // État pour l'affichage de la confirmation du mot de passe
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [passwordStrength, setPasswordStrength] = useState<number>(0); // État pour la force du mot de passe
   const navigate = useNavigate();
 
-  // Gestion de l'inscription par email
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
+  const toggleConfirmPasswordVisibility = () => {
+    setShowConfirmPassword(!showConfirmPassword);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    setPasswordStrength(evaluatePasswordStrength(value)); // Mettre à jour la force du mot de passe
+  };
+
   const handleRegisterEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -50,7 +80,6 @@ export default function RegisterPage() {
     }
   };
 
-  // Gestion de l'inscription par téléphone
   const handleRegisterPhone = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -108,28 +137,83 @@ export default function RegisterPage() {
                       required
                     />
                   </div>
+
                   <div className="space-y-1">
                     <Label htmlFor="password">Mot de passe</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={handlePasswordChange} // Appel pour calculer la force
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                        aria-label={
+                          showPassword
+                            ? "Masquer le mot de passe"
+                            : "Afficher le mot de passe"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
+                    {/* Barre de force du mot de passe */}
+                    <div className="h-2 mt-2 w-full bg-gray-200 rounded">
+                      <div
+                        className={`h-full rounded transition-all duration-300 ${
+                          passwordStrength === 1
+                            ? "bg-red-500 w-1/4"
+                            : passwordStrength === 2
+                            ? "bg-yellow-500 w-1/2"
+                            : passwordStrength === 3
+                            ? "bg-green-500 w-3/4"
+                            : passwordStrength >= 4
+                            ? "bg-green-700 w-full"
+                            : "bg-gray-200"
+                        }`}
+                      ></div>
+                    </div>
                   </div>
+
                   <div className="space-y-1">
                     <Label htmlFor="confirm-password">
                       Confirmer le mot de passe
                     </Label>
-                    <Input
-                      id="confirm-password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirm-password"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={toggleConfirmPasswordVisibility}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                        aria-label={
+                          showConfirmPassword
+                            ? "Masquer le mot de passe"
+                            : "Afficher le mot de passe"
+                        }
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
+
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading
                       ? "Inscription en cours..."

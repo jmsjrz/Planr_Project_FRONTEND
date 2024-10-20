@@ -1,4 +1,3 @@
-// src/pages/LoginPage.tsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext"; // Importer useAuth pour accéder au contexte
@@ -7,13 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react"; // Importation des icônes pour afficher/masquer le mot de passe
 
 export default function LoginPage() {
   const [email, setEmail] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false); // État pour afficher/masquer le mot de passe
   const [loading, setLoading] = useState(false);
   const { login, errorMessage, setErrorMessage } = useAuth();
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword); // Permet d'afficher/masquer le mot de passe
+  };
 
   const handleLoginEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +61,7 @@ export default function LoginPage() {
             <TabsTrigger value="phone">Téléphone</TabsTrigger>
           </TabsList>
 
+          {/* Connexion par Email */}
           <TabsContent value="email">
             <Card>
               <CardHeader>
@@ -79,13 +85,31 @@ export default function LoginPage() {
                   </div>
                   <div className="space-y-1">
                     <Label htmlFor="password">Mot de passe</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={togglePasswordVisibility}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400"
+                        aria-label={
+                          showPassword
+                            ? "Masquer le mot de passe"
+                            : "Afficher le mot de passe"
+                        }
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
                     {loading ? "Connexion en cours..." : "Se connecter"}
@@ -109,6 +133,7 @@ export default function LoginPage() {
             </Card>
           </TabsContent>
 
+          {/* Connexion par Téléphone */}
           <TabsContent value="phone">
             <Card>
               <CardHeader>
