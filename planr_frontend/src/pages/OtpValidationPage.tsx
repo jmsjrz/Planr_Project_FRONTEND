@@ -1,6 +1,7 @@
+// src/pages/OtpValidationPage.tsx
+
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { verifyOtp, resendOtp } from "@/utils/api";
+// import { useNavigate } from "react-router-dom"; // Supprimé car non utilisé
 import {
   InputOTP,
   InputOTPGroup,
@@ -9,14 +10,15 @@ import {
 } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { resendOtp } from "@/utils/api"; // Ajouté pour importer resendOtp
 
 export default function OtpValidationPage() {
   const [otp, setOtp] = useState<string>(""); // Stockage de l'OTP complet
   const [loading, setLoading] = useState(false);
-  const { errorMessage, setErrorMessage, setAuthenticatedUser } = useAuth(); // Utiliser setAuthenticatedUser
+  const { handleVerifyOtp, errorMessage, setErrorMessage } = useAuth(); // Utiliser handleVerifyOtp
   const [timeLeft, setTimeLeft] = useState(900); // Temps restant (15 minutes = 900 secondes)
   const [canResend, setCanResend] = useState(false); // Statut du bouton de renvoi d'OTP
-  const navigate = useNavigate();
+  // const navigate = useNavigate(); // Supprimé car non utilisé
 
   // Fonction pour capturer chaque chiffre saisi dans l'OTP
   const handleOtpChange = (value: string) => {
@@ -61,35 +63,17 @@ export default function OtpValidationPage() {
     try {
       const guestToken = localStorage.getItem("guest_token");
       if (!guestToken) {
-        throw new Error("Token non trouvé");
+        throw new Error("Token invité non trouvé");
       }
 
-      // Appel de l'API pour vérifier l'OTP
-      const response = await verifyOtp(otp, guestToken);
-      console.log("Réponse de vérification OTP :", response);
-
-      // Stocker les tokens JWT renvoyés par l'API
-      const accessToken = response.access || response.access_token;
-      const refreshToken = response.refresh || response.refresh_token;
-
-      if (accessToken && refreshToken) {
-        localStorage.setItem("access_token", accessToken);
-        localStorage.setItem("refresh_token", refreshToken);
-        localStorage.removeItem("guest_token"); // Supprimer le guest_token
-
-        // Mettre à jour l'état utilisateur dans le contexte
-        setAuthenticatedUser();
-
-        navigate("/dashboard"); // Redirection vers le tableau de bord après succès
-      } else {
-        setErrorMessage("Échec de la vérification. Veuillez réessayer.");
-      }
+      // Appel de handleVerifyOtp depuis le contexte
+      await handleVerifyOtp(otp, guestToken);
+      // La mise à jour de l'état utilisateur et la navigation sont gérées dans handleVerifyOtp
     } catch (error: any) {
       // On s'assure d'afficher le bon message d'erreur provenant de l'API
       const apiErrorMessage =
-        error.response?.data?.error ||
         error.message ||
-        "OTP invalide ou expiré, veuillez réessayer.";
+        "Erreur lors de la vérification de l'OTP. Veuillez réessayer.";
       console.error(
         "Erreur lors de la vérification de l'OTP :",
         apiErrorMessage

@@ -1,5 +1,5 @@
 // src/context/AuthContext.tsx
-import {
+import React, {
   createContext,
   useState,
   useContext,
@@ -13,128 +13,105 @@ import {
   logoutUser,
   isTokenExpired,
   refreshAccessToken,
+  verifyOtp,
 } from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
-// Déclaration du type AuthContext
 export interface AuthContextType {
   user: any;
   login: (emailOrPhone: string, password?: string) => Promise<void>;
   register: (emailOrPhone: string, password?: string) => Promise<void>;
+  handleVerifyOtp: (otp: string, guestToken: string) => Promise<void>;
   logout: () => void;
-  setAuthenticatedUser: () => void; // Nouvelle fonction pour mettre à jour l'utilisateur
   loading: boolean;
   errorMessage: string;
   setErrorMessage: React.Dispatch<React.SetStateAction<string>>;
 }
 
-// Création du contexte AuthContext
+// Fonctions pour gérer les tokens
+const setAccessToken = (token: string) => {
+  localStorage.setItem("access_token", token);
+};
+
+const getAccessToken = () => {
+  return localStorage.getItem("access_token");
+};
+
+const setRefreshToken = (token: string) => {
+  localStorage.setItem("refresh_token", token);
+};
+
+const getRefreshToken = () => {
+  return localStorage.getItem("refresh_token");
+};
+
+const clearTokens = () => {
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("refresh_token");
+  localStorage.removeItem("guest_token");
+};
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Fournisseur de contexte pour l'authentification
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(null); // État utilisateur
-  const [loading, setLoading] = useState(true); // État de chargement
-  const [errorMessage, setErrorMessage] = useState<string>(""); // Message d'erreur
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+
   const navigate = useNavigate();
 
-  // Fonction pour mettre à jour l'état utilisateur après la vérification de l'OTP
-  const setAuthenticatedUser = useCallback(() => {
-    const accessToken = localStorage.getItem("access_token");
-    if (accessToken) {
-      const userData = parseJwt(accessToken);
-      setUser(userData);
-    }
-  }, []);
-
-  // Fonction de déconnexion
-  const logout = useCallback(async () => {
-    const refreshToken = localStorage.getItem("refresh_token");
-
-    if (refreshToken) {
-      try {
-        await logoutUser(refreshToken); // Appel de l'API pour blacklister le token de rafraîchissement
-      } catch (error) {
-        console.error("Erreur lors de la déconnexion", error);
-      }
-    }
-
-    // Supprimer les tokens du localStorage
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    localStorage.removeItem("guest_token");
-
-    setUser(null); // Réinitialiser l'état utilisateur
-    navigate("/login"); // Redirige vers la page de connexion
-  }, [navigate]);
-
-  // Écouteur pour l'événement de déconnexion
-  useEffect(() => {
-    const handleLogout = () => {
-      logout();
-    };
-
-    window.addEventListener("logout", handleLogout);
-
-    return () => {
-      window.removeEventListener("logout", handleLogout);
-    };
-  }, [logout]);
-
-  // Vérifie si un token est présent au chargement de l'application
+  // Initialisation de l'authentification au chargement
   useEffect(() => {
     const initializeAuth = async () => {
-      const accessToken = localStorage.getItem("access_token");
+      const accessToken = getAccessToken();
 
-      if (accessToken) {
-        if (isTokenExpired(accessToken)) {
+      if (accessToken && !isTokenExpired(accessToken)) {
+        const userData = parseJwt(accessToken);
+        setUser(userData);
+        setLoading(false);
+      } else {
+        const refreshToken = getRefreshToken();
+        if (refreshToken) {
           try {
-            await refreshAccessToken();
-
-            const newAccessToken = localStorage.getItem("access_token");
-            if (newAccessToken) {
-              const userData = parseJwt(newAccessToken);
-              setUser(userData);
-            } else {
-              console.error(
-                "Access token non disponible après le rafraîchissement"
-              );
-              logout();
-            }
+            const newAccessToken = await refreshAccessToken();
+            const userData = parseJwt(newAccessToken);
+            setUser(userData);
+            setLoading(false);
           } catch (error) {
-            console.error("Session expirée, déconnexion");
-            logout();
+            // Échec du rafraîchissement, déconnecter l'utilisateur
+            clearTokens();
+            setUser(null);
+            setLoading(false);
           }
         } else {
-          // Token valide, extraire les données utilisateur du token
-          const userData = parseJwt(accessToken);
-          setUser(userData);
+          // Pas de tokens, déconnecter l'utilisateur
+          clearTokens();
+          setUser(null);
+          setLoading(false);
         }
       }
-      setLoading(false);
     };
 
     initializeAuth();
-  }, [logout]);
+  }, []);
 
   // Fonction de connexion
   const login = useCallback(
     async (emailOrPhone: string, password?: string) => {
+      setLoading(true);
       try {
         const response = await loginUser(emailOrPhone, undefined, password);
-        console.log("Réponse de connexion :", response);
 
         if (
           (response.access || response.access_token) &&
           (response.refresh || response.refresh_token)
         ) {
-          // L'utilisateur est authentifié
           const accessToken = response.access || response.access_token;
           const refreshToken = response.refresh || response.refresh_token;
 
-          localStorage.setItem("access_token", accessToken);
-          localStorage.setItem("refresh_token", refreshToken);
+          setAccessToken(accessToken);
+          setRefreshToken(refreshToken);
 
           const userData = parseJwt(accessToken);
           setUser(userData);
@@ -149,40 +126,90 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           );
         }
       } catch (error: any) {
-        const errorMessage =
-          error.message || "Erreur lors de la connexion. Veuillez réessayer.";
-        console.error("Erreur de connexion détaillée :", error); // Ajout d'une log détaillée
-        setErrorMessage(errorMessage); // On affiche maintenant l'erreur précise dans l'interface
+        setErrorMessage(
+          error.message || "Erreur lors de la connexion. Veuillez réessayer."
+        );
+      } finally {
+        setLoading(false);
       }
     },
     [navigate]
   );
 
-  // Fonction d'inscription (inchangée)
+  // Fonction d'inscription
   const register = useCallback(
     async (emailOrPhone: string, password?: string) => {
+      setLoading(true);
       try {
         const response = await registerUser(emailOrPhone, password);
 
         if (response.guest_token) {
           localStorage.setItem("guest_token", response.guest_token);
-          navigate("/verify-otp"); // Redirige vers la page de vérification OTP
+          navigate("/verify-otp");
         } else {
-          console.error("Échec de l'inscription, guest_token non reçu");
           setErrorMessage(
             "Échec de l'inscription. Veuillez vérifier vos informations."
           );
         }
       } catch (error: any) {
-        const errorMessage =
+        setErrorMessage(
           error.response?.data?.error ||
-          "Erreur lors de l'inscription. Veuillez réessayer.";
-        console.error("Erreur d'inscription", error);
-        setErrorMessage(errorMessage);
+            "Erreur lors de l'inscription. Veuillez réessayer."
+        );
+      } finally {
+        setLoading(false);
       }
     },
     [navigate]
   );
+
+  // Fonction de vérification OTP
+  const handleVerifyOtp = useCallback(
+    async (otp: string, guestToken: string) => {
+      setLoading(true);
+      try {
+        const response = await verifyOtp(otp, guestToken);
+
+        if (
+          (response.access || response.access_token) &&
+          (response.refresh || response.refresh_token)
+        ) {
+          const accessToken = response.access || response.access_token;
+          const refreshToken = response.refresh || response.refresh_token;
+
+          setAccessToken(accessToken);
+          setRefreshToken(refreshToken);
+
+          const userData = parseJwt(accessToken);
+          setUser(userData);
+
+          navigate("/dashboard");
+        } else {
+          setErrorMessage("Échec de la vérification OTP.");
+        }
+      } catch (error: any) {
+        setErrorMessage(error.message || "Erreur lors de la vérification OTP.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [navigate]
+  );
+
+  // Fonction de déconnexion
+  const logout = useCallback(async () => {
+    const refreshToken = getRefreshToken();
+
+    if (refreshToken) {
+      try {
+        await logoutUser(refreshToken);
+      } catch {}
+    }
+
+    clearTokens();
+    setUser(null);
+    navigate("/login");
+  }, [navigate]);
 
   return (
     <AuthContext.Provider
@@ -190,8 +217,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         user,
         login,
         register,
+        handleVerifyOtp,
         logout,
-        setAuthenticatedUser, // On ajoute la fonction au contexte
         loading,
         errorMessage,
         setErrorMessage,
@@ -202,21 +229,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Fonction pour décoder le token JWT et extraire les données utilisateur
+// Fonction pour décoder le token JWT
 const parseJwt = (token: string) => {
   try {
     return jwtDecode(token);
-  } catch (error) {
-    console.error("Erreur lors du parsing du token JWT", error);
+  } catch {
     return null;
   }
 };
 
-// Hook pour accéder au contexte d'authentification
+// Hook pour utiliser le contexte d'authentification
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error(
+      "useAuth doit être utilisé à l'intérieur d'un AuthProvider"
+    );
   }
   return context;
 };

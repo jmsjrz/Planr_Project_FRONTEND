@@ -1,6 +1,8 @@
+// src/pages/RegisterPage.tsx
+
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { registerUser } from "@/utils/api";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext"; // Importer useAuth pour accéder au contexte
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,10 +36,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState<boolean>(false); // État pour l'affichage du mot de passe
   const [showConfirmPassword, setShowConfirmPassword] =
     useState<boolean>(false); // État pour l'affichage de la confirmation du mot de passe
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>("");
   const [passwordStrength, setPasswordStrength] = useState<number>(0); // État pour la force du mot de passe
-  const navigate = useNavigate();
+  const { register, errorMessage, setErrorMessage, loading } = useAuth(); // Utiliser register depuis useAuth
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -55,49 +55,34 @@ export default function RegisterPage() {
 
   const handleRegisterEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage("");
 
     if (password !== confirmPassword) {
       setErrorMessage("Les mots de passe ne correspondent pas.");
-      setLoading(false);
       return;
     }
 
     try {
-      const response = await registerUser(email, password); // Appel API pour inscription par email
-      if (response.guest_token) {
-        localStorage.setItem("guest_token", response.guest_token);
-        navigate("/verify-otp");
-      }
+      await register(email, password); // Utiliser register depuis le contexte
     } catch (error: any) {
       const errorMessage =
         error.message || "Échec de l'inscription. Veuillez réessayer.";
       console.error("Erreur d'inscription par email :", errorMessage);
       setErrorMessage(errorMessage); // On affiche l'erreur précise
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleRegisterPhone = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMessage("");
 
     try {
-      const response = await registerUser(phoneNumber); // Appel API pour inscription par téléphone
-      if (response.guest_token) {
-        localStorage.setItem("guest_token", response.guest_token);
-        navigate("/verify-otp");
-      }
+      await register(phoneNumber); // Utiliser register depuis le contexte
     } catch (error: any) {
       const errorMessage =
         error.message || "Échec de l'inscription. Veuillez réessayer.";
       console.error("Erreur d'inscription par téléphone :", errorMessage);
       setErrorMessage(errorMessage); // On affiche l'erreur précise
-    } finally {
-      setLoading(false);
     }
   };
 
