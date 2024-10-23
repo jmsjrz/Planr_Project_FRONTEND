@@ -4,8 +4,8 @@ import { requestPasswordReset } from "@/utils/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
+import Header from "@/components/layout/HeaderLanding";
+import Footer from "@/components/layout/FooterLanding";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState<string>("");

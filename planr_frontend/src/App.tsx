@@ -1,7 +1,8 @@
 // src/App.tsx
+
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import PrivateRoute from "./components/PrivateRoute";
+import PrivateRoute from "./components/routes/PrivateRoute";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
@@ -20,9 +21,12 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/verify-otp" element={<OtpValidationPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="reset-password/:token" element={<ResetPasswordPage />} />
           <Route
-            path="/dashboard"
+            path="/reset-password/:token"
+            element={<ResetPasswordPage />}
+          />
+          <Route
+            path="/dashboard/*"
             element={
               <PrivateRoute>
                 <DashboardPage />
