@@ -14,12 +14,15 @@ import {
   isTokenExpired,
   refreshAccessToken,
   verifyOtp,
+  checkProfileCompletion,
 } from "@/utils/api";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
 export interface AuthContextType {
   user: any;
+  isProfileComplete: boolean | null;
+  setIsProfileComplete: React.Dispatch<React.SetStateAction<boolean | null>>;
   login: (emailOrPhone: string, password?: string) => Promise<void>;
   register: (emailOrPhone: string, password?: string) => Promise<void>;
   handleVerifyOtp: (otp: string, guestToken: string) => Promise<void>;
@@ -56,6 +59,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState<boolean | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -69,6 +75,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (accessToken && !isTokenExpired(accessToken)) {
         const userData = parseJwt(accessToken);
         setUser(userData);
+
+        try {
+          const { is_profile_complete } = await checkProfileCompletion();
+          setIsProfileComplete(is_profile_complete);
+        } catch (error) {
+          setIsProfileComplete(false);
+        }
+
         setLoading(false);
       } else {
         const refreshToken = getRefreshToken();
@@ -77,17 +91,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const newAccessToken = await refreshAccessToken();
             const userData = parseJwt(newAccessToken);
             setUser(userData);
+
+            try {
+              const { is_profile_complete } = await checkProfileCompletion();
+              setIsProfileComplete(is_profile_complete);
+            } catch (error) {
+              setIsProfileComplete(false);
+            }
+
             setLoading(false);
           } catch (error) {
             // Échec du rafraîchissement, déconnecter l'utilisateur
             clearTokens();
             setUser(null);
+            setIsProfileComplete(false);
             setLoading(false);
           }
         } else {
           // Pas de tokens, déconnecter l'utilisateur
           clearTokens();
           setUser(null);
+          setIsProfileComplete(false);
           setLoading(false);
         }
       }
@@ -115,6 +139,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           const userData = parseJwt(accessToken);
           setUser(userData);
+
+          try {
+            const { is_profile_complete } = await checkProfileCompletion();
+            setIsProfileComplete(is_profile_complete);
+          } catch (error) {
+            setIsProfileComplete(false);
+          }
 
           navigate("/dashboard");
         } else if (response.guest_token) {
@@ -183,6 +214,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const userData = parseJwt(accessToken);
           setUser(userData);
 
+          try {
+            const { is_profile_complete } = await checkProfileCompletion();
+            setIsProfileComplete(is_profile_complete);
+          } catch (error) {
+            setIsProfileComplete(false);
+          }
+
           navigate("/dashboard");
         } else {
           setErrorMessage("Échec de la vérification OTP.");
@@ -208,6 +246,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     clearTokens();
     setUser(null);
+    setIsProfileComplete(false);
     navigate("/login");
   }, [navigate]);
 
@@ -215,6 +254,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     <AuthContext.Provider
       value={{
         user,
+        isProfileComplete,
+        setIsProfileComplete,
         login,
         register,
         handleVerifyOtp,

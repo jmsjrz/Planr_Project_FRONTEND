@@ -229,5 +229,24 @@ export const resetPassword = async (token: string, newPassword: string) => {
   return response.data;
 };
 
+export const checkProfileCompletion = async () => {
+  const response = await api.get("users/profile/completion/");
+  return response.data;
+};
+
+export const fetchInterests = async () => {
+  const response = await api.get("users/interests/");
+  return response.data;
+};
+
+export const saveProfile = async (formData: FormData) => {
+  const response = await api.put("users/profile/", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
 // Exporter l'instance 'api' configurée
 export default api;
