@@ -23,6 +23,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/context/AuthContext"; // Importation du hook pour accéder à l'authentification
 
 export default function NavUser() {
   const user = {
@@ -31,6 +32,8 @@ export default function NavUser() {
     avatar: "/placeholder.svg?height=32&width=32",
     isPremium: false,
   };
+
+  const { logout } = useAuth(); // Utilisation du hook pour obtenir la fonction logout
 
   return (
     <SidebarMenu>
@@ -105,7 +108,7 @@ export default function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onSelect={logout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Se déconnecter</span>
             </DropdownMenuItem>

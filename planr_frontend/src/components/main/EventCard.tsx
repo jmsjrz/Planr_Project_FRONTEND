@@ -35,30 +35,10 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { CalendarDays, Clock, Heart, MapPin, Users } from "lucide-react";
-
-interface Participant {
-  id: string;
-  name: string;
-  avatar: string;
-}
+import { Event } from "@/models/Event";
 
 interface EventCardProps {
-  event: {
-    id: string;
-    title: string;
-    description: string;
-    max_participants: number;
-    creator: {
-      name: string;
-      avatar: string;
-    };
-    participants: Participant[];
-    date: string;
-    duration: string;
-    location: string;
-    image: string;
-    wishlist_count: number;
-  };
+  event: Event;
 }
 
 const truncateDescription = (text: string, maxLength: number) =>
@@ -75,12 +55,14 @@ export default function EventCard({ event }: EventCardProps) {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [localWishlistCount, setLocalWishlistCount] = useState(
-    event.wishlist_count
+    event.wishlistCount
   );
 
   const toggleWishlist = () => {
     setIsWishlisted(!isWishlisted);
-    setLocalWishlistCount((prevCount) => prevCount + (isWishlisted ? -1 : 1));
+    setLocalWishlistCount(
+      (prevCount: number) => prevCount + (isWishlisted ? -1 : 1)
+    );
   };
 
   const handleRegister = () => {
@@ -93,7 +75,7 @@ export default function EventCard({ event }: EventCardProps) {
     <Card className="w-full max-w-sm flex flex-col">
       <CardHeader className="p-0">
         <img
-          src={event.image}
+          src={event.image ?? ""}
           alt={event.title}
           className="w-full h-48 object-cover rounded-t-lg"
         />
@@ -104,16 +86,24 @@ export default function EventCard({ event }: EventCardProps) {
         </CardTitle>
         <div className="flex items-center space-x-2">
           <Avatar className="h-6 w-6">
-            <AvatarImage src={event.creator.avatar} alt={event.creator.name} />
-            <AvatarFallback>{event.creator.name.charAt(0)}</AvatarFallback>
+            <AvatarImage
+              src={event.organizer.profilePicture || "/default-avatar.png"}
+              alt={event.organizer.firstName || "Organisateur"}
+            />
+            <AvatarFallback>
+              {event.organizer.firstName
+                ? event.organizer.firstName.charAt(0)
+                : "O"}
+            </AvatarFallback>
           </Avatar>
           <p className="text-sm text-muted-foreground">
             Organisé par{" "}
             <span className="font-semibold">
-              {event.creator.name.split(" ")[0]}
+              {event.organizer.firstName || "Anonyme"}
             </span>
           </p>
         </div>
+
         <div className="text-sm text-muted-foreground space-y-1">
           <div className="flex items-center space-x-2">
             <CalendarDays className="h-4 w-4" />
@@ -135,7 +125,7 @@ export default function EventCard({ event }: EventCardProps) {
             <div className="flex items-center space-x-1">
               <Users className="h-5 w-5 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">
-                {event.participants.length}/{event.max_participants}
+                {event.participants.length}/{event.maxParticipants}
               </span>
             </div>
             <div className="flex items-center space-x-1">
@@ -167,7 +157,7 @@ export default function EventCard({ event }: EventCardProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      <p className="text-sm">{event.duration}</p>
+                      <p className="text-sm">{event.time}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
@@ -182,34 +172,40 @@ export default function EventCard({ event }: EventCardProps) {
                   </div>
                   <Separator />
                   <div>
-                    <h5 className="font-medium mb-2">
-                      Informations supplémentaires
-                    </h5>
-                    <ul className="text-sm space-y-1">
-                      {/* Ajoutez des informations supplémentaires si nécessaire */}
-                    </ul>
-                  </div>
-                  <Separator />
-                  <div>
                     <h5 className="font-medium mb-2">Participants inscrits</h5>
                     <div className="space-y-2">
-                      {event.participants.map((participant) => (
-                        <div
-                          key={participant.id}
-                          className="flex items-center space-x-2"
-                        >
-                          <Avatar className="h-6 w-6">
-                            <AvatarImage
-                              src={participant.avatar}
-                              alt={participant.name}
-                            />
-                            <AvatarFallback>
-                              {participant.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">{participant.name}</span>
-                        </div>
-                      ))}
+                      {event.participants.length === 0 ? (
+                        <p>Aucun participant pour le moment</p>
+                      ) : (
+                        event.participants.map((participant, index) => {
+                          if (!participant) return null;
+
+                          return (
+                            <div
+                              key={index}
+                              className="flex items-center space-x-2"
+                            >
+                              <Avatar className="h-6 w-6">
+                                <AvatarImage
+                                  src={
+                                    participant.profilePicture ||
+                                    "/default-avatar.png"
+                                  }
+                                  alt={participant.firstName || "Participant"}
+                                />
+                                <AvatarFallback>
+                                  {participant.firstName
+                                    ? participant.firstName.charAt(0)
+                                    : "P"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">
+                                {participant.firstName || "Anonyme"}{" "}
+                              </span>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
                 </div>
@@ -270,30 +266,41 @@ export default function EventCard({ event }: EventCardProps) {
         </div>
         <div className="flex justify-between items-center w-full">
           <div className="flex -space-x-2 overflow-hidden">
-            {displayedParticipants.map((participant) => (
-              <TooltipProvider key={participant.id}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Avatar className="inline-block border-2 border-background">
-                      <AvatarImage
-                        src={participant.avatar}
-                        alt={participant.name}
-                      />
-                      <AvatarFallback>
-                        {participant.name.charAt(0)}
-                      </AvatarFallback>
-                    </Avatar>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{participant.name}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ))}
+            {displayedParticipants.length === 0 ? (
+              <p className="text-sm">Aucun participant inscrit</p>
+            ) : (
+              displayedParticipants.map((participant, index) => (
+                <TooltipProvider key={index}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Avatar className="inline-block border-2 border-background">
+                        <AvatarImage
+                          src={
+                            participant.profilePicture || "/default-avatar.png"
+                          }
+                          alt={participant.firstName}
+                        />
+                        <AvatarFallback>
+                          {participant.firstName
+                            ? participant.firstName.charAt(0)
+                            : "P"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{participant.firstName || "Anonyme"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ))
+            )}
           </div>
-          <span className="text-sm text-muted-foreground">
-            +{event.participants.length - displayedParticipants.length} inscrits
-          </span>
+          {event.participants.length > displayedParticipants.length && (
+            <span className="text-sm text-muted-foreground">
+              +{event.participants.length - displayedParticipants.length}{" "}
+              inscrits
+            </span>
+          )}
         </div>
       </CardFooter>
     </Card>

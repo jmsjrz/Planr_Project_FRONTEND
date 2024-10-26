@@ -34,25 +34,25 @@ export interface AuthContextType {
 
 // Fonctions pour gérer les tokens
 const setAccessToken = (token: string) => {
-  localStorage.setItem("access_token", token);
+  localStorage.setItem("accessToken", token);
 };
 
 const getAccessToken = () => {
-  return localStorage.getItem("access_token");
+  return localStorage.getItem("accessToken");
 };
 
 const setRefreshToken = (token: string) => {
-  localStorage.setItem("refresh_token", token);
+  localStorage.setItem("refreshToken", token);
 };
 
 const getRefreshToken = () => {
-  return localStorage.getItem("refresh_token");
+  return localStorage.getItem("refreshToken");
 };
 
 const clearTokens = () => {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("guest_token");
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("guestToken");
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,8 +77,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(userData);
 
         try {
-          const { is_profile_complete } = await checkProfileCompletion();
-          setIsProfileComplete(is_profile_complete);
+          const { isProfileComplete } = await checkProfileCompletion();
+          setIsProfileComplete(isProfileComplete);
         } catch (error) {
           setIsProfileComplete(false);
         }
@@ -93,8 +93,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(userData);
 
             try {
-              const { is_profile_complete } = await checkProfileCompletion();
-              setIsProfileComplete(is_profile_complete);
+              const { isProfileComplete } = await checkProfileCompletion();
+              setIsProfileComplete(isProfileComplete);
             } catch (error) {
               setIsProfileComplete(false);
             }
@@ -128,11 +128,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await loginUser(emailOrPhone, undefined, password);
 
         if (
-          (response.access || response.access_token) &&
-          (response.refresh || response.refresh_token)
+          (response.access || response.accessToken) &&
+          (response.refresh || response.refreshToken)
         ) {
-          const accessToken = response.access || response.access_token;
-          const refreshToken = response.refresh || response.refresh_token;
+          const accessToken = response.access || response.accessToken;
+          const refreshToken = response.refresh || response.refreshToken;
 
           setAccessToken(accessToken);
           setRefreshToken(refreshToken);
@@ -141,15 +141,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(userData);
 
           try {
-            const { is_profile_complete } = await checkProfileCompletion();
-            setIsProfileComplete(is_profile_complete);
+            const { isProfileComplete } = await checkProfileCompletion();
+            setIsProfileComplete(isProfileComplete);
           } catch (error) {
             setIsProfileComplete(false);
           }
 
           navigate("/dashboard");
-        } else if (response.guest_token) {
-          localStorage.setItem("guest_token", response.guest_token);
+        } else if (response.guestToken) {
+          localStorage.setItem("guestToken", response.guestToken);
           navigate("/verify-otp");
         } else {
           setErrorMessage(
@@ -174,8 +174,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await registerUser(emailOrPhone, password);
 
-        if (response.guest_token) {
-          localStorage.setItem("guest_token", response.guest_token);
+        if (response.guestToken) {
+          localStorage.setItem("guestToken", response.guestToken);
           navigate("/verify-otp");
         } else {
           setErrorMessage(
@@ -202,11 +202,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const response = await verifyOtp(otp, guestToken);
 
         if (
-          (response.access || response.access_token) &&
-          (response.refresh || response.refresh_token)
+          (response.access || response.accessToken) &&
+          (response.refresh || response.refreshToken)
         ) {
-          const accessToken = response.access || response.access_token;
-          const refreshToken = response.refresh || response.refresh_token;
+          const accessToken = response.access || response.accessToken;
+          const refreshToken = response.refresh || response.refreshToken;
 
           setAccessToken(accessToken);
           setRefreshToken(refreshToken);
@@ -215,8 +215,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(userData);
 
           try {
-            const { is_profile_complete } = await checkProfileCompletion();
-            setIsProfileComplete(is_profile_complete);
+            const { isProfileComplete } = await checkProfileCompletion();
+            setIsProfileComplete(isProfileComplete);
           } catch (error) {
             setIsProfileComplete(false);
           }

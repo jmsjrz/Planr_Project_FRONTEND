@@ -6,25 +6,25 @@ const API_BASE_URL = "http://127.0.0.1:8000";
 
 // Fonctions pour gérer les tokens
 const setAccessToken = (token: string) => {
-  localStorage.setItem("access_token", token);
+  localStorage.setItem("accessToken", token);
 };
 
 const getAccessToken = () => {
-  return localStorage.getItem("access_token");
+  return localStorage.getItem("accessToken");
 };
 
 const setRefreshToken = (token: string) => {
-  localStorage.setItem("refresh_token", token);
+  localStorage.setItem("refreshToken", token);
 };
 
 const getRefreshToken = () => {
-  return localStorage.getItem("refresh_token");
+  return localStorage.getItem("refreshToken");
 };
 
 const clearTokens = () => {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("guest_token");
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("guestToken");
 };
 
 // Création d'une instance Axios personnalisée
@@ -128,8 +128,8 @@ export const refreshAccessToken = async () => {
       refresh: refreshToken,
     });
 
-    const newAccessToken = response.data.access || response.data.access_token;
-    const newRefreshToken = response.data.refresh || response.data.refresh_token;
+    const newAccessToken = response.data.access || response.data.accessToken;
+    const newRefreshToken = response.data.refresh || response.data.refreshToken;
 
     if (newAccessToken) {
       setAccessToken(newAccessToken);
@@ -149,13 +149,13 @@ export const refreshAccessToken = async () => {
 
 // Fonctions API pour les actions utilisateur
 export const registerUser = async (emailOrPhone: string, password?: string) => {
-  const data: { email?: string; phone_number?: string; password?: string } = {};
+  const data: { email?: string; phoneNumber?: string; password?: string } = {};
 
   if (emailOrPhone.includes("@")) {
     data.email = emailOrPhone;
     if (password) data.password = password;
   } else {
-    data.phone_number = emailOrPhone;
+    data.phoneNumber = emailOrPhone;
   }
 
   const response = await api.post(`/users/register/`, data);
@@ -180,17 +180,17 @@ export const loginUser = async (
   phoneNumber?: string,
   password?: string
 ) => {
-  const data: { email?: string; phone_number?: string; password?: string } = {};
+  const data: { email?: string; phoneNumber?: string; password?: string } = {};
 
   if (emailOrPhone) {
     if (emailOrPhone.includes("@")) {
       data.email = emailOrPhone;
     } else {
-      data.phone_number = emailOrPhone;
+      data.phoneNumber = emailOrPhone;
     }
   }
 
-  if (phoneNumber) data.phone_number = phoneNumber;
+  if (phoneNumber) data.phoneNumber = phoneNumber;
   if (password) data.password = password;
 
   const response = await api.post(`/users/login/`, data);
@@ -212,13 +212,18 @@ export const resendOtp = async (guestToken: string) => {
 
 export const logoutUser = async (refreshToken: string) => {
   const response = await api.post(`/users/logout/`, {
-    refresh_token: refreshToken,
+    refreshToken: refreshToken,
   });
   return response.data;
 };
 
 export const requestPasswordReset = async (email: string) => {
   const response = await api.post(`/users/request-password-reset/`, { email });
+  return response.data;
+};
+
+export const getPrivateEvents = async () => {
+  const response = await api.get(`/private-events/`);
   return response.data;
 };
 
@@ -241,6 +246,15 @@ export const fetchInterests = async () => {
 
 export const saveProfile = async (formData: FormData) => {
   const response = await api.put("users/profile/", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
+export const createPrivateEvent = async (formData: FormData) => {
+  const response = await api.post("/private-events/", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

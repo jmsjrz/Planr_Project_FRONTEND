@@ -40,7 +40,7 @@ export default function OtpValidationPage() {
   // Fonction pour renvoyer un OTP une fois le temps écoulé
   const handleResendOtp = async () => {
     try {
-      const guestToken = localStorage.getItem("guest_token");
+      const guestToken = localStorage.getItem("guestToken");
       if (!guestToken) {
         throw new Error("Token invité non trouvé");
       }
@@ -61,7 +61,7 @@ export default function OtpValidationPage() {
     setErrorMessage("");
 
     try {
-      const guestToken = localStorage.getItem("guest_token");
+      const guestToken = localStorage.getItem("guestToken");
       if (!guestToken) {
         throw new Error("Token invité non trouvé");
       }

@@ -18,8 +18,8 @@ export default function DashboardPage() {
     const verifyProfileCompletion = async () => {
       setLoading(true);
       try {
-        const { is_profile_complete } = await checkProfileCompletion();
-        setIsProfileComplete(is_profile_complete);
+        const { isProfileComplete } = await checkProfileCompletion();
+        setIsProfileComplete(isProfileComplete);
       } catch (error) {
         console.error("Erreur lors de la vérification du profil :", error);
         setIsProfileComplete(false);
