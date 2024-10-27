@@ -11,6 +11,7 @@ export interface Event {
   image?: string;
   organizer: PublicProfile;
   participants: PublicProfile[];
-  wishlist: number;
   wishlistCount: number;
+  isWishlisted: boolean;
+  isRegistered: boolean;
 }

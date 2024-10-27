@@ -36,6 +36,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { CalendarDays, Clock, Heart, MapPin, Users } from "lucide-react";
 import { Event } from "@/models/Event";
+import { toggleWishlist, registerForEvent } from "@/utils/api";
 
 interface EventCardProps {
   event: Event;
@@ -52,21 +53,31 @@ const formatDate = (dateString: string) => {
 };
 
 export default function EventCard({ event }: EventCardProps) {
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isRegistered, setIsRegistered] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(event.isWishlisted || false);
+  const [isRegistered, setIsRegistered] = useState(event.isRegistered || false);
   const [localWishlistCount, setLocalWishlistCount] = useState(
     event.wishlistCount
   );
 
-  const toggleWishlist = () => {
-    setIsWishlisted(!isWishlisted);
-    setLocalWishlistCount(
-      (prevCount: number) => prevCount + (isWishlisted ? -1 : 1)
-    );
+  const handleToggleWishlist = async () => {
+    try {
+      const response = await toggleWishlist(event.id);
+      setIsWishlisted(response.status === "added");
+      setLocalWishlistCount((prevCount) =>
+        response.status === "added" ? prevCount + 1 : prevCount - 1
+      );
+    } catch (error) {
+      console.error("Erreur lors de la gestion de la wishlist", error);
+    }
   };
 
-  const handleRegister = () => {
-    setIsRegistered(true);
+  const handleRegister = async () => {
+    try {
+      await registerForEvent(event.id);
+      setIsRegistered(true);
+    } catch (error) {
+      console.error("Erreur lors de l'inscription", error);
+    }
   };
 
   const displayedParticipants = event.participants.slice(0, 3);
@@ -218,7 +229,11 @@ export default function EventCard({ event }: EventCardProps) {
         <div className="flex justify-between items-center w-full">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="default" className="w-full mr-2">
+              <Button
+                variant="default"
+                className="w-full mr-2"
+                disabled={isRegistered}
+              >
                 {isRegistered ? "Inscrit" : "S'inscrire"}
               </Button>
             </AlertDialogTrigger>
@@ -243,7 +258,7 @@ export default function EventCard({ event }: EventCardProps) {
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={toggleWishlist}
+                  onClick={handleToggleWishlist}
                   className={
                     isWishlisted ? "text-red-500" : "text-muted-foreground"
                   }

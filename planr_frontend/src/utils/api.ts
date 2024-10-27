@@ -262,5 +262,16 @@ export const createPrivateEvent = async (formData: FormData) => {
   return response.data;
 };
 
+export const toggleWishlist = async (eventId: number) => {
+  const response = await api.post(`/wishlist/toggle/`, { eventId });
+  return response.data;
+};
+
+export const registerForEvent = async (eventId: number) => {
+  const response = await api.post(`/registrations/`, { eventId });
+  return response.data;
+};
+
+
 // Exporter l'instance 'api' configurée
 export default api;
