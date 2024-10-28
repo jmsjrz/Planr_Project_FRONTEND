@@ -26,7 +26,7 @@ export default function ExplorerPage() {
   return (
     <MainContent>
       <h1 className="text-2xl font-bold mb-4">
-        Page de test pour fetch les Events Privés
+        Les événements organisés par la communauté
       </h1>
       {isLoading ? (
         <p>Chargement des événements...</p>

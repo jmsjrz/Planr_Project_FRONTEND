@@ -83,7 +83,7 @@ export default function EventCard({ event }: EventCardProps) {
   const displayedParticipants = event.participants.slice(0, 3);
 
   return (
-    <Card className="w-full max-w-sm flex flex-col">
+    <Card className="w-full max-w-sm flex flex-col justify-between">
       <CardHeader className="p-0">
         <img
           src={event.image ?? ""}
@@ -127,7 +127,8 @@ export default function EventCard({ event }: EventCardProps) {
         </div>
         <div>
           <p className="text-sm font-semibold mb-1">Description :</p>
-          <p className="text-sm text-muted-foreground">
+          {/* Limite la hauteur de la description pour un alignement cohérent */}
+          <p className="text-sm text-muted-foreground line-clamp-3 max-h-[4.5rem]">
             {truncateDescription(event.description, 100)}
           </p>
         </div>
@@ -168,7 +169,7 @@ export default function EventCard({ event }: EventCardProps) {
                     </div>
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      <p className="text-sm">{event.time}</p>
+                      <p className="text-sm">{event.time.substring(0, 5)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
@@ -225,7 +226,7 @@ export default function EventCard({ event }: EventCardProps) {
           </Popover>
         </div>
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4 p-4">
+      <CardFooter className="flex flex-col space-y-4 p-4 mt-auto">
         <div className="flex justify-between items-center w-full">
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -279,7 +280,8 @@ export default function EventCard({ event }: EventCardProps) {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="flex justify-between items-center w-full">
+        {/* Forcing the same space whether there are participants or not */}
+        <div className="flex justify-between items-center w-full min-h-[40px]">
           <div className="flex -space-x-2 overflow-hidden">
             {displayedParticipants.length === 0 ? (
               <p className="text-sm">Aucun participant inscrit</p>
