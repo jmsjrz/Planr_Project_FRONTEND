@@ -44,9 +44,7 @@ api.interceptors.request.use(
       return config;
     }
 
-    // Vérifier si l'en-tête Authorization est déjà défini
     if (config.headers && config.headers.Authorization) {
-      // Ne pas écraser l'en-tête Authorization existant
       return config;
     }
 
@@ -123,7 +121,6 @@ export const refreshAccessToken = async () => {
   }
 
   try {
-    // Utiliser 'refreshApi' au lieu de 'api'
     const response = await refreshApi.post(`/token/refresh/`, {
       refresh: refreshToken,
     });
@@ -272,6 +269,10 @@ export const registerForEvent = async (eventId: number) => {
   return response.data;
 };
 
+export const getUserProfile = async () => {
+  const response = await api.get("/users/profile/");
+  return response.data;
+};
 
 // Exporter l'instance 'api' configurée
 export default api;

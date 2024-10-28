@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import HomePage from "./dashboard/HomePage";
+import ExplorerPage from "./dashboard/ExplorerPage";
 import SettingsPage from "./dashboard/SettingsPage";
 import CreateProfilePage from "./dashboard/CreateProfilePage";
 import { checkProfileCompletion } from "@/utils/api";
 import { useAuth } from "@/context/AuthContext";
+import LoadingWidget from "@/components/routes/LoadingWidget";
 
 export default function DashboardPage() {
   const location = useLocation();
@@ -32,7 +34,7 @@ export default function DashboardPage() {
   }, [location.pathname, setIsProfileComplete]);
 
   if (loading) {
-    return <div>Chargement...</div>;
+    return <LoadingWidget />;
   }
 
   if (!isProfileComplete && location.pathname !== "/dashboard/create-profile") {
@@ -51,6 +53,20 @@ export default function DashboardPage() {
             ]}
           >
             <HomePage />
+          </DashboardLayout>
+        }
+      />
+      <Route
+        path="explorer"
+        element={
+          <DashboardLayout
+            breadcrumbs={[
+              { title: "Planr", url: "/" },
+              { title: "Tableau de bord", url: "/dashboard" },
+              { title: "Explorer", url: "/dashboard/explorer" },
+            ]}
+          >
+            <ExplorerPage />
           </DashboardLayout>
         }
       />

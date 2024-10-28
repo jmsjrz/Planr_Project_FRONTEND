@@ -1,12 +1,13 @@
 // src/components/PrivateRoute.tsx
 import { useAuth } from "@/context/AuthContext";
 import { Navigate } from "react-router-dom";
+import LoadingWidget from "./LoadingWidget";
 
 const PrivateRoute = ({ children }: { children: JSX.Element }) => {
   const { user, loading } = useAuth(); // Récupère l'utilisateur et l'état de chargement
 
   if (loading) {
-    return <div>Chargement...</div>; // Affiche un indicateur de chargement pendant la vérification
+    return <LoadingWidget />;
   }
 
   if (!user) {

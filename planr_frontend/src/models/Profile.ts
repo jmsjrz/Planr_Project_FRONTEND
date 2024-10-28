@@ -7,6 +7,8 @@ export interface PrivateProfile {
   gender: string | null;
   interests: Interest[];
   profilePicture?: string;
+  email?: string;
+  phoneNumber?: string;
 }
 
 export interface PublicProfile {

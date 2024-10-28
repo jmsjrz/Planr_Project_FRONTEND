@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Calendar, LogIn } from "lucide-react";
 import { Link } from "react-router-dom";
+import LoadingWidget from "@/components/routes/LoadingWidget";
 import { useAuth } from "@/context/AuthContext"; // Import du contexte d'authentification
 
 export function Header() {
@@ -16,15 +17,12 @@ export function Header() {
           </div>
           <div className="flex space-x-2">
             {loading ? (
-              // Affichage d'un indicateur de chargement si l'authentification est en cours
-              <span>Chargement...</span>
+              <LoadingWidget />
             ) : user ? (
-              // Si l'utilisateur est connecté, afficher "Ma Dashboard"
               <Link to="/dashboard">
                 <Button>Ma Dashboard</Button>
               </Link>
             ) : (
-              // Si l'utilisateur n'est pas connecté, afficher "Accéder à l'application"
               <Link to="/login">
                 <Button>
                   <LogIn className="mr-2" />

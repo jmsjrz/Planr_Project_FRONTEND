@@ -15,9 +15,9 @@ import {
   refreshAccessToken,
   verifyOtp,
   checkProfileCompletion,
+  getUserProfile,
 } from "@/utils/api";
 import { useNavigate } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
 
 export interface AuthContextType {
   user: any;
@@ -73,12 +73,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const accessToken = getAccessToken();
 
       if (accessToken && !isTokenExpired(accessToken)) {
-        const userData = parseJwt(accessToken);
-        setUser(userData);
-
+        // Récupérer des informations utilisateur complètes via l'API
         try {
-          const { isProfileComplete } = await checkProfileCompletion();
-          setIsProfileComplete(isProfileComplete);
+          const userData = await getUserProfile(); // Appel API pour des infos complètes
+          setUser(userData); // Met à jour avec les infos complètes du profil
         } catch (error) {
           setIsProfileComplete(false);
         }
@@ -88,20 +86,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const refreshToken = getRefreshToken();
         if (refreshToken) {
           try {
-            const newAccessToken = await refreshAccessToken();
-            const userData = parseJwt(newAccessToken);
-            setUser(userData);
+            await refreshAccessToken(); // Rafraîchissement du token
 
-            try {
-              const { isProfileComplete } = await checkProfileCompletion();
-              setIsProfileComplete(isProfileComplete);
-            } catch (error) {
-              setIsProfileComplete(false);
-            }
+            const userData = await getUserProfile(); // Infos complètes via l'API après rafraîchissement du token
+            setUser(userData);
 
             setLoading(false);
           } catch (error) {
-            // Échec du rafraîchissement, déconnecter l'utilisateur
             clearTokens();
             setUser(null);
             setIsProfileComplete(false);
@@ -137,15 +128,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setAccessToken(accessToken);
           setRefreshToken(refreshToken);
 
-          const userData = parseJwt(accessToken);
+          // Récupérer le profil utilisateur complet depuis l'API
+          const userData = await getUserProfile();
           setUser(userData);
 
-          try {
-            const { isProfileComplete } = await checkProfileCompletion();
-            setIsProfileComplete(isProfileComplete);
-          } catch (error) {
-            setIsProfileComplete(false);
-          }
+          const { isProfileComplete } = await checkProfileCompletion();
+          setIsProfileComplete(isProfileComplete);
 
           navigate("/dashboard");
         } else if (response.guestToken) {
@@ -211,15 +199,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setAccessToken(accessToken);
           setRefreshToken(refreshToken);
 
-          const userData = parseJwt(accessToken);
+          // Récupérer le profil utilisateur complet depuis l'API
+          const userData = await getUserProfile();
           setUser(userData);
 
-          try {
-            const { isProfileComplete } = await checkProfileCompletion();
-            setIsProfileComplete(isProfileComplete);
-          } catch (error) {
-            setIsProfileComplete(false);
-          }
+          const { isProfileComplete } = await checkProfileCompletion();
+          setIsProfileComplete(isProfileComplete);
 
           navigate("/dashboard");
         } else {
@@ -268,15 +253,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       {children}
     </AuthContext.Provider>
   );
-};
-
-// Fonction pour décoder le token JWT
-const parseJwt = (token: string) => {
-  try {
-    return jwtDecode(token);
-  } catch {
-    return null;
-  }
 };
 
 // Hook pour utiliser le contexte d'authentification

@@ -1,5 +1,3 @@
-// src/components/navigation/NavUser.tsx
-
 import {
   ChevronsUpDown,
   Sparkles,
@@ -23,17 +21,25 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { useAuth } from "@/context/AuthContext"; // Importation du hook pour accéder à l'authentification
+import { useAuth } from "@/context/AuthContext";
+import LoadingWidget from "../routes/LoadingWidget";
 
 export default function NavUser() {
-  const user = {
-    name: "James",
-    email: "jamesjarosz@mailly.com",
-    avatar: "/placeholder.svg?height=32&width=32",
-    isPremium: false,
-  };
+  const { user, logout } = useAuth();
 
-  const { logout } = useAuth(); // Utilisation du hook pour obtenir la fonction logout
+  // Vérification si les données utilisateur sont présentes
+  if (!user) {
+    return <LoadingWidget />;
+  }
+
+  const userName = user.firstName || "Utilisateur";
+  const userAvatar = user.profilePicture
+    ? `http://127.0.0.1:8000${user.profilePicture}`
+    : "/default-avatar.png";
+
+  // Affiche l'email si disponible, sinon le numéro de téléphone
+  const userEmailOrPhone =
+    user.email || user.phoneNumber || "Aucune information disponible";
 
   return (
     <SidebarMenu>
@@ -45,17 +51,17 @@ export default function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarImage src={userAvatar} alt={userName} />
                 <AvatarFallback className="rounded-lg">
-                  {user.name
+                  {userName
                     .split(" ")
-                    .map((n) => n[0])
+                    .map((n: string) => n[0])
                     .join("")}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
+                <span className="truncate font-semibold">{userName}</span>
+                <span className="truncate text-xs">{userEmailOrPhone}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -69,17 +75,17 @@ export default function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
+                  <AvatarImage src={userAvatar} alt={userName} />
                   <AvatarFallback className="rounded-lg">
-                    {user.name
+                    {userName
                       .split(" ")
-                      .map((n) => n[0])
+                      .map((n: string) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span className="truncate font-semibold">{userName}</span>
+                  <span className="truncate text-xs">{userEmailOrPhone}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
