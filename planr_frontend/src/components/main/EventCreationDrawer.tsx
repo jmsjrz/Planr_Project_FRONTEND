@@ -26,6 +26,13 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarIcon, Upload, Clock, XCircleIcon } from "lucide-react";
@@ -39,6 +46,7 @@ interface FormData {
   time: string;
   maxParticipants: number;
   image: string | null;
+  category: string;
 }
 
 interface EventCreationDrawerProps {
@@ -47,6 +55,19 @@ interface EventCreationDrawerProps {
 }
 
 const FORM_STORAGE_KEY = "eventCreationFormData";
+
+const CATEGORY_CHOICES = [
+  { value: "CONF", label: "Conférences" },
+  { value: "WORK", label: "Ateliers" },
+  { value: "FEST", label: "Festivals" },
+  { value: "SPORT", label: "Sport" },
+  { value: "PARTY", label: "Soirées" },
+  { value: "EXPO", label: "Expositions" },
+  { value: "TRIP", label: "Excursions" },
+  { value: "CHAR", label: "Événements caritatifs" },
+  { value: "PROF", label: "Rencontres professionnelles" },
+  { value: "FAM", label: "Famille et Enfants" },
+];
 
 export default function EventCreationDrawer({
   isOpen,
@@ -73,6 +94,7 @@ export default function EventCreationDrawer({
       time: "",
       maxParticipants: 0,
       image: null,
+      category: "",
     },
   });
 
@@ -104,12 +126,23 @@ export default function EventCreationDrawer({
     reader.readAsDataURL(file);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
+  const {
+    getRootProps,
+    getInputProps,
+    isDragActive,
+    open: openDropzone,
+  } = useDropzone({
     onDrop,
     accept: { "image/*": [] },
     multiple: false,
     noClick: true,
   });
+
+  const handleOpenDropzone = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openDropzone();
+  };
 
   const onImageLoad = useCallback((img: HTMLImageElement) => {
     imgRef.current = img;
@@ -166,6 +199,7 @@ export default function EventCreationDrawer({
     formData.append("date", formattedDate);
     formData.append("time", data.time);
     formData.append("maxParticipants", data.maxParticipants.toString());
+    formData.append("category", data.category);
 
     if (data.image) {
       const blob = await fetch(data.image).then((r) => r.blob());
@@ -183,7 +217,12 @@ export default function EventCreationDrawer({
   };
 
   return (
-    <Drawer open={isOpen} onOpenChange={onClose}>
+    <Drawer
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DrawerContent className="max-h-[65vh] flex flex-col">
         <DrawerHeader>
           <DrawerTitle>Créer un Nouvel Événement</DrawerTitle>
@@ -319,6 +358,36 @@ export default function EventCreationDrawer({
 
                 <FormField
                   control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Catégorie</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sélectionnez une catégorie" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CATEGORY_CHOICES.map((category) => (
+                            <SelectItem
+                              key={category.value}
+                              value={category.value}
+                            >
+                              {category.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="image"
                   render={({}) => (
                     <FormItem>
@@ -344,7 +413,7 @@ export default function EventCreationDrawer({
                                   </div>
                                 )}
                                 <Button
-                                  onClick={open}
+                                  onClick={handleOpenDropzone}
                                   variant="outline"
                                   className="mt-4"
                                 >
@@ -405,7 +474,6 @@ export default function EventCreationDrawer({
                   )}
                 />
 
-                {/* Bouton de soumission déplacé dans le formulaire */}
                 <Button type="submit" className="w-full">
                   Créer l'Événement
                 </Button>

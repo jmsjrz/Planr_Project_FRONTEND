@@ -8,6 +8,7 @@ export interface Event {
   date: string;
   time: string;
   maxParticipants: number;
+  categoryDisplay: string;
   image?: string;
   organizer: PublicProfile;
   participants: PublicProfile[];

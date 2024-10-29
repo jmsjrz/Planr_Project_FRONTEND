@@ -34,7 +34,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { CalendarDays, Clock, Heart, MapPin, Users } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CalendarDays, Clock, Heart, MapPin, Users, Tag } from "lucide-react";
 import { Event } from "@/models/Event";
 import { toggleWishlist, registerForEvent } from "@/utils/api";
 
@@ -84,12 +85,16 @@ export default function EventCard({ event }: EventCardProps) {
 
   return (
     <Card className="w-full max-w-sm flex flex-col justify-between">
-      <CardHeader className="p-0">
+      <CardHeader className="p-0 relative">
         <img
           src={event.image ?? ""}
           alt={event.title}
           className="w-full h-48 object-cover rounded-t-lg"
         />
+        <Badge variant="secondary" className="absolute top-2 right-2">
+          <Tag className="h-3 w-3 mr-1" />
+          {event.categoryDisplay}
+        </Badge>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col p-4 space-y-4">
         <CardTitle className="text-xl font-bold line-clamp-2">
@@ -127,7 +132,6 @@ export default function EventCard({ event }: EventCardProps) {
         </div>
         <div>
           <p className="text-sm font-semibold mb-1">Description :</p>
-          {/* Limite la hauteur de la description pour un alignement cohérent */}
           <p className="text-sm text-muted-foreground line-clamp-3 max-h-[4.5rem]">
             {truncateDescription(event.description, 100)}
           </p>
@@ -174,6 +178,10 @@ export default function EventCard({ event }: EventCardProps) {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
                       <p className="text-sm">{event.location}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      <p className="text-sm">{event.categoryDisplay}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Heart className="h-4 w-4" />
@@ -280,7 +288,6 @@ export default function EventCard({ event }: EventCardProps) {
             </Tooltip>
           </TooltipProvider>
         </div>
-        {/* Forcing the same space whether there are participants or not */}
         <div className="flex justify-between items-center w-full min-h-[40px]">
           <div className="flex -space-x-2 overflow-hidden">
             {displayedParticipants.length === 0 ? (
