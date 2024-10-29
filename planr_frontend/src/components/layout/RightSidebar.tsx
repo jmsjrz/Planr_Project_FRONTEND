@@ -1,21 +1,41 @@
 // src/components/layout/RightSidebar.tsx
 
+import { useState, useEffect } from "react";
 import {
   Sidebar,
   SidebarHeader,
-  SidebarContent,
   SidebarSeparator,
+  SidebarContent,
 } from "@/components/ui/sidebar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import DatePickerWidget from "@/components/widgets/DatePickerWidget";
-import EventFiltersWidget from "@/components/widgets/EventFiltersWidget";
+import { searchEvents, getPrivateEvents } from "@/utils/api"; // Importez `getPrivateEvents`
+import { useSearch } from "@/context/SearchContext";
+import EventFiltersWidget from "../widgets/EventFiltersWidget";
+import DatePickerWidget from "../widgets/DatePickerWidget";
 
 interface RightSidebarProps {
   isOpen: boolean;
 }
 
 export default function RightSidebar({ isOpen }: RightSidebarProps) {
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const { setSearchResults } = useSearch();
+
+  useEffect(() => {
+    const fetchSearchResults = async () => {
+      if (searchQuery) {
+        const results = await searchEvents(searchQuery);
+        setSearchResults(results); // Met à jour les résultats de la recherche
+      } else {
+        const allEvents = await getPrivateEvents();
+        setSearchResults(allEvents); // Réinitialise à tous les événements si la recherche est vide
+      }
+    };
+
+    fetchSearchResults();
+  }, [searchQuery]);
+
   if (!isOpen) return null;
 
   return (
@@ -29,6 +49,8 @@ export default function RightSidebar({ isOpen }: RightSidebarProps) {
           <Input
             placeholder="Rechercher un événement..."
             className="pl-8 w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </SidebarHeader>

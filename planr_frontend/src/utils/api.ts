@@ -274,5 +274,11 @@ export const getUserProfile = async () => {
   return response.data;
 };
 
+export const searchEvents = async (searchQuery: string) => {
+  const params = searchQuery ? { search: searchQuery } : {};
+  const response = await api.get("/private-events/", { params });
+  return response.data;
+};
+
 // Exporter l'instance 'api' configurée
 export default api;

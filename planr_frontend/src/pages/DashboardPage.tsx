@@ -9,6 +9,7 @@ import SettingsPage from "./dashboard/SettingsPage";
 import CreateProfilePage from "./dashboard/CreateProfilePage";
 import { checkProfileCompletion } from "@/utils/api";
 import { useAuth } from "@/context/AuthContext";
+import { SearchProvider } from "@/context/SearchContext";
 import LoadingWidget from "@/components/routes/LoadingWidget";
 
 export default function DashboardPage() {
@@ -42,51 +43,53 @@ export default function DashboardPage() {
   }
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={
-          <DashboardLayout
-            breadcrumbs={[
-              { title: "Planr", url: "/" },
-              { title: "Tableau de bord", url: "/dashboard" },
-            ]}
-          >
-            <HomePage />
-          </DashboardLayout>
-        }
-      />
-      <Route
-        path="explorer"
-        element={
-          <DashboardLayout
-            breadcrumbs={[
-              { title: "Planr", url: "/" },
-              { title: "Tableau de bord", url: "/dashboard" },
-              { title: "Explorer", url: "/dashboard/explorer" },
-            ]}
-          >
-            <ExplorerPage />
-          </DashboardLayout>
-        }
-      />
-      <Route
-        path="settings"
-        element={
-          <DashboardLayout
-            breadcrumbs={[
-              { title: "Planr", url: "/" },
-              { title: "Tableau de bord", url: "/dashboard" },
-              { title: "Paramètres", url: "/dashboard/settings" },
-            ]}
-            showRightSidebar={false}
-          >
-            <SettingsPage />
-          </DashboardLayout>
-        }
-      />
-      <Route path="create-profile" element={<CreateProfilePage />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+    <SearchProvider>
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <DashboardLayout
+              breadcrumbs={[
+                { title: "Planr", url: "/" },
+                { title: "Tableau de bord", url: "/dashboard" },
+              ]}
+            >
+              <HomePage />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="explorer"
+          element={
+            <DashboardLayout
+              breadcrumbs={[
+                { title: "Planr", url: "/" },
+                { title: "Tableau de bord", url: "/dashboard" },
+                { title: "Explorer", url: "/dashboard/explorer" },
+              ]}
+            >
+              <ExplorerPage />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="settings"
+          element={
+            <DashboardLayout
+              breadcrumbs={[
+                { title: "Planr", url: "/" },
+                { title: "Tableau de bord", url: "/dashboard" },
+                { title: "Paramètres", url: "/dashboard/settings" },
+              ]}
+              showRightSidebar={false}
+            >
+              <SettingsPage />
+            </DashboardLayout>
+          }
+        />
+        <Route path="create-profile" element={<CreateProfilePage />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </SearchProvider>
   );
 }
