@@ -7,6 +7,8 @@ import HomePage from "./dashboard/HomePage";
 import ExplorerPage from "./dashboard/ExplorerPage";
 import SettingsPage from "./dashboard/SettingsPage";
 import CreateProfilePage from "./dashboard/CreateProfilePage";
+import MyEventsPage from "./dashboard/MyEventsPage";
+import MyWishlistPage from "./dashboard/MyWishlistPage";
 import { checkProfileCompletion } from "@/utils/api";
 import { useAuth } from "@/context/AuthContext";
 import { SearchProvider } from "@/context/SearchContext";
@@ -53,6 +55,7 @@ export default function DashboardPage() {
                 { title: "Planr", url: "/" },
                 { title: "Tableau de bord", url: "/dashboard" },
               ]}
+              showRightSidebar={false}
             >
               <HomePage />
             </DashboardLayout>
@@ -84,6 +87,39 @@ export default function DashboardPage() {
               showRightSidebar={false}
             >
               <SettingsPage />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="my-events" // New route path
+          element={
+            <DashboardLayout
+              breadcrumbs={[
+                { title: "Planr", url: "/" },
+                { title: "Tableau de bord", url: "/dashboard" },
+                { title: "Mes Événements", url: "/dashboard/my-events" },
+              ]}
+              showRightSidebar={false}
+            >
+              <MyEventsPage />
+            </DashboardLayout>
+          }
+        />
+        <Route
+          path="my-wishlist"
+          element={
+            <DashboardLayout
+              breadcrumbs={[
+                { title: "Planr", url: "/" },
+                { title: "Tableau de bord", url: "/dashboard" },
+                {
+                  title: "Mes Événements Wishlist",
+                  url: "/dashboard/my-wishlist",
+                },
+              ]}
+              showRightSidebar={false}
+            >
+              <MyWishlistPage />
             </DashboardLayout>
           }
         />

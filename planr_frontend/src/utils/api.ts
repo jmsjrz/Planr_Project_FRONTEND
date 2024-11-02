@@ -280,6 +280,43 @@ export const searchEvents = async (searchQuery: string) => {
   return response.data;
 };
 
+export const deleteEvent = async (eventId: number) => {
+  try {
+    const response = await api.delete(`/private-events/${eventId}/`);
+    return response.data;
+  } catch (error) {
+    throw new Error("Échec de la suppression de l'événement.");
+  }
+};
+
+export const getMyWishlistEvents = async () => {
+  try {
+    const response = await api.get(`/private-events/my-wishlist/`);
+    return response.data;
+  } catch (error) {
+    throw new Error("Erreur lors de la récupération des événements de la wishlist.");
+  }
+};
+
+export const getMyEvents = async () => {
+  try {
+    const response = await api.get(`/private-events/my-events/`);
+    return response.data;
+  } catch (error) {
+    throw new Error("Erreur lors de la récupération de vos événements.");
+  }
+};
+
+export const getJoinedEvents = async () => {
+  try {
+    const response = await api.get(`/private-events/joined-events/`); // Assurez-vous que cet endpoint existe côté backend
+    return response.data;
+  } catch (error) {
+    throw new Error("Erreur lors de la récupération des événements rejoints.");
+  }
+};
+
+
 // Exporter l'instance 'api' configurée
 export default api;
 
