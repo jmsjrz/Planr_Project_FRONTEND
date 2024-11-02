@@ -5,6 +5,8 @@ export interface Event {
   title: string;
   description: string;
   location: string;
+  latitude: number;
+  longitude: number;
   date: string;
   time: string;
   maxParticipants: number;

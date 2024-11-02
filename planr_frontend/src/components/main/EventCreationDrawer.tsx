@@ -1,5 +1,12 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  ChangeEvent,
+  MouseEvent,
+} from "react";
+import { useForm, Controller, SubmitHandler } from "react-hook-form";
 import { useDropzone } from "react-dropzone";
 import ReactCrop, { Crop, PixelCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
@@ -37,12 +44,16 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarIcon, Upload, Clock, XCircleIcon } from "lucide-react";
 import { createPrivateEvent } from "@/utils/api";
+import { useLoadScript, StandaloneSearchBox } from "@react-google-maps/api";
+import { GOOGLE_MAPS_LIBRARIES } from "@/utils/api";
 
 interface FormData {
   title: string;
   description: string;
   location: string;
-  date: Date;
+  latitude: number;
+  longitude: number;
+  date: Date | null;
   time: string;
   maxParticipants: number;
   image: string | null;
@@ -84,13 +95,22 @@ export default function EventCreationDrawer({
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const autocompleteRef = useRef<google.maps.places.SearchBox | null>(null);
+
+  const { isLoaded } = useLoadScript({
+    id: "google-map-script",
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
 
   const form = useForm<FormData>({
     defaultValues: {
       title: "",
       description: "",
       location: "",
-      date: new Date(),
+      latitude: 0,
+      longitude: 0,
+      date: null,
       time: "",
       maxParticipants: 0,
       image: null,
@@ -98,32 +118,39 @@ export default function EventCreationDrawer({
     },
   });
 
+  const { control, handleSubmit, reset, watch, setValue } = form;
+
   useEffect(() => {
     const savedFormData = localStorage.getItem(FORM_STORAGE_KEY);
     if (savedFormData) {
       const parsedData = JSON.parse(savedFormData);
-      form.reset(parsedData);
+      reset({
+        ...parsedData,
+        date: parsedData.date ? new Date(parsedData.date) : null,
+      });
       if (parsedData.image) {
         setImage(parsedData.image);
         setCroppedImage(parsedData.image);
       }
     }
-  }, [form]);
+  }, [reset]);
 
   useEffect(() => {
-    const subscription = form.watch((value) => {
+    const subscription = watch((value) => {
       localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(value));
     });
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [watch]);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImage(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   }, []);
 
   const {
@@ -135,12 +162,10 @@ export default function EventCreationDrawer({
     onDrop,
     accept: { "image/*": [] },
     multiple: false,
-    noClick: true,
   });
 
-  const handleOpenDropzone = (e: React.MouseEvent) => {
+  const handleOpenDropzone = (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    e.stopPropagation();
     openDropzone();
   };
 
@@ -180,29 +205,46 @@ export default function EventCreationDrawer({
     if (completedCrop && imgRef.current) {
       const croppedImageUrl = getCroppedImg(imgRef.current, completedCrop);
       setCroppedImage(croppedImageUrl);
-      form.setValue("image", croppedImageUrl);
+      setValue("image", croppedImageUrl);
     }
-  }, [completedCrop, form, getCroppedImg]);
+  }, [completedCrop, getCroppedImg, setValue]);
 
   const handleRemoveImage = () => {
     setImage(null);
     setCroppedImage(null);
-    form.setValue("image", null);
+    setValue("image", null);
   };
 
-  const submitForm = async (data: FormData) => {
+  const onPlaceChanged = () => {
+    if (autocompleteRef.current) {
+      const places = autocompleteRef.current.getPlaces();
+      if (places && places.length > 0) {
+        const place = places[0];
+        setValue("location", place.formatted_address || "");
+        setValue("latitude", place.geometry?.location?.lat() || 0);
+        setValue("longitude", place.geometry?.location?.lng() || 0);
+      }
+    }
+  };
+
+  const submitForm: SubmitHandler<FormData> = async (data) => {
+    console.log("Formulaire soumis avec les données :", data); // Ajouté pour déboguer
     const formData = new FormData();
-    const formattedDate = data.date.toISOString().split("T")[0];
+    const formattedDate = data.date
+      ? data.date.toISOString().split("T")[0]
+      : "";
     formData.append("title", data.title);
     formData.append("description", data.description);
     formData.append("location", data.location);
+    formData.append("latitude", data.latitude.toString());
+    formData.append("longitude", data.longitude.toString());
     formData.append("date", formattedDate);
     formData.append("time", data.time);
     formData.append("maxParticipants", data.maxParticipants.toString());
     formData.append("category", data.category);
 
     if (data.image) {
-      const blob = await fetch(data.image).then((r) => r.blob());
+      const blob = await (await fetch(data.image)).blob();
       formData.append("image", blob, "event.jpg");
     }
 
@@ -211,8 +253,11 @@ export default function EventCreationDrawer({
       console.log("Événement créé avec succès :", response);
       localStorage.removeItem(FORM_STORAGE_KEY);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de la création de l'événement :", error);
+      if (error.response) {
+        console.error("Détails de l'erreur :", error.response.data);
+      }
     }
   };
 
@@ -230,12 +275,9 @@ export default function EventCreationDrawer({
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 pb-0">
             <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit(submitForm)}
-                className="space-y-4"
-              >
+              <form onSubmit={handleSubmit(submitForm)} className="space-y-4">
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="title"
                   render={({ field }) => (
                     <FormItem>
@@ -248,7 +290,7 @@ export default function EventCreationDrawer({
                 />
 
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="description"
                   render={({ field }) => (
                     <FormItem>
@@ -264,21 +306,38 @@ export default function EventCreationDrawer({
                 />
 
                 <div className="flex space-x-2">
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <FormLabel>Lieu</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Lieu de l'événement" {...field} />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                  <FormItem className="flex-[3]">
+                    <FormLabel>Lieu</FormLabel>
+                    <FormControl>
+                      {isLoaded ? (
+                        <Controller
+                          control={control}
+                          name="location"
+                          render={({ field }) => (
+                            <StandaloneSearchBox
+                              onLoad={(ref) => {
+                                autocompleteRef.current = ref;
+                              }}
+                              onPlacesChanged={onPlaceChanged}
+                            >
+                              <Input
+                                placeholder="Entrez l'adresse de l'événement"
+                                {...field}
+                              />
+                            </StandaloneSearchBox>
+                          )}
+                        />
+                      ) : (
+                        <Input
+                          placeholder="Chargement de Google Maps..."
+                          disabled
+                        />
+                      )}
+                    </FormControl>
+                  </FormItem>
 
                   <FormField
-                    control={form.control}
+                    control={control}
                     name="maxParticipants"
                     render={({ field }) => (
                       <FormItem className="flex-1">
@@ -287,7 +346,7 @@ export default function EventCreationDrawer({
                           <Input
                             type="number"
                             {...field}
-                            onChange={(e) =>
+                            onChange={(e: ChangeEvent<HTMLInputElement>) =>
                               field.onChange(parseInt(e.target.value, 10))
                             }
                           />
@@ -299,7 +358,7 @@ export default function EventCreationDrawer({
 
                 <div className="flex space-x-2">
                   <FormField
-                    control={form.control}
+                    control={control}
                     name="date"
                     render={({ field }) => (
                       <FormItem className="flex-1">
@@ -325,12 +384,9 @@ export default function EventCreationDrawer({
                           <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                               mode="single"
-                              selected={field.value}
+                              selected={field.value ?? undefined}
                               onSelect={field.onChange}
-                              disabled={(date) =>
-                                date < new Date() ||
-                                date < new Date("1900-01-01")
-                              }
+                              disabled={(date) => date < new Date("1900-01-01")}
                               initialFocus
                             />
                           </PopoverContent>
@@ -340,7 +396,7 @@ export default function EventCreationDrawer({
                   />
 
                   <FormField
-                    control={form.control}
+                    control={control}
                     name="time"
                     render={({ field }) => (
                       <FormItem className="flex-1">
@@ -357,122 +413,114 @@ export default function EventCreationDrawer({
                 </div>
 
                 <FormField
-                  control={form.control}
+                  control={control}
                   name="category"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Catégorie</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
+                      <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
                           <SelectTrigger>
                             <SelectValue placeholder="Sélectionnez une catégorie" />
                           </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {CATEGORY_CHOICES.map((category) => (
-                            <SelectItem
-                              key={category.value}
-                              value={category.value}
-                            >
-                              {category.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="image"
-                  render={({}) => (
-                    <FormItem>
-                      <FormLabel>Image de l'événement</FormLabel>
-                      <FormControl>
-                        <Card className="w-full">
-                          <CardContent>
-                            {!image ? (
-                              <div
-                                {...getRootProps()}
-                                className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                          <SelectContent>
+                            {CATEGORY_CHOICES.map((category) => (
+                              <SelectItem
+                                key={category.value}
+                                value={category.value}
                               >
-                                <input {...getInputProps()} />
-                                {isDragActive ? (
-                                  <p>Déposez l'image ici ...</p>
-                                ) : (
-                                  <div className="space-y-2">
-                                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                                    <p className="text-sm text-gray-500">
-                                      Glissez et déposez une image ici, ou
-                                      cliquez pour en sélectionner une
-                                    </p>
-                                  </div>
-                                )}
-                                <Button
-                                  onClick={handleOpenDropzone}
-                                  variant="outline"
-                                  className="mt-4"
-                                >
-                                  Choisir une image
-                                </Button>
-                              </div>
-                            ) : (
-                              <div className="space-y-4">
-                                <div className="relative">
-                                  <ReactCrop
-                                    crop={crop}
-                                    onChange={(_, percentCrop) =>
-                                      setCrop(percentCrop)
-                                    }
-                                    onComplete={(c) => setCompletedCrop(c)}
-                                    aspect={16 / 9}
-                                  >
-                                    <img
-                                      ref={imgRef}
-                                      src={image}
-                                      alt="Event"
-                                      onLoad={(e) =>
-                                        onImageLoad(e.currentTarget)
-                                      }
-                                      style={{
-                                        maxWidth: "100%",
-                                        maxHeight: "300px",
-                                      }}
-                                    />
-                                  </ReactCrop>
-                                  <Button
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute top-2 right-2 rounded-full"
-                                    onClick={handleRemoveImage}
-                                  >
-                                    <XCircleIcon className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                                {croppedImage && (
-                                  <div>
-                                    <h3 className="text-lg font-semibold mb-2">
-                                      Aperçu
-                                    </h3>
-                                    <img
-                                      src={croppedImage}
-                                      alt="Cropped preview"
-                                      className="max-w-full h-auto rounded-lg"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
+                                {category.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </FormControl>
                     </FormItem>
                   )}
                 />
+
+                <FormItem>
+                  <FormLabel>Image de l'événement</FormLabel>
+                  <FormControl>
+                    <Card className="w-full">
+                      <CardContent>
+                        {!image ? (
+                          <div
+                            {...getRootProps()}
+                            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                          >
+                            <input {...getInputProps()} />
+                            {isDragActive ? (
+                              <p>Déposez l'image ici ...</p>
+                            ) : (
+                              <div className="space-y-2">
+                                <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                                <p className="text-sm text-gray-500">
+                                  Glissez et déposez une image ici, ou cliquez
+                                  pour en sélectionner une
+                                </p>
+                              </div>
+                            )}
+                            <Button
+                              onClick={handleOpenDropzone}
+                              variant="outline"
+                              className="mt-4"
+                            >
+                              Choisir une image
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="relative">
+                              <ReactCrop
+                                crop={crop}
+                                onChange={(_, percentCrop) =>
+                                  setCrop(percentCrop)
+                                }
+                                onComplete={(c) => setCompletedCrop(c)}
+                                aspect={16 / 9}
+                              >
+                                <img
+                                  ref={imgRef}
+                                  src={image}
+                                  alt="Event"
+                                  onLoad={(e) => onImageLoad(e.currentTarget)}
+                                  style={{
+                                    maxWidth: "100%",
+                                    maxHeight: "300px",
+                                  }}
+                                />
+                              </ReactCrop>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 rounded-full"
+                                onClick={handleRemoveImage}
+                              >
+                                <XCircleIcon className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            {croppedImage && (
+                              <div>
+                                <h3 className="text-lg font-semibold mb-2">
+                                  Aperçu
+                                </h3>
+                                <img
+                                  src={croppedImage}
+                                  alt="Cropped preview"
+                                  className="max-w-full h-auto rounded-lg"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </FormControl>
+                </FormItem>
 
                 <Button type="submit" className="w-full">
                   Créer l'Événement

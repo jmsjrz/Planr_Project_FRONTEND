@@ -4,16 +4,69 @@ import { getPrivateEvents } from "@/utils/api";
 import { Event } from "@/models/Event";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { GoogleMap, useLoadScript } from "@react-google-maps/api";
+import { GOOGLE_MAPS_LIBRARIES } from "@/utils/api";
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+
+const mapContainerStyle = {
+  width: "100%",
+  height: "400px",
+};
+
+const center = {
+  lat: 46.603354,
+  lng: 1.888334,
+};
+
+// Style de carte personnalisé
+const mapStyle = [
+  {
+    elementType: "geometry",
+    stylers: [{ color: "#f3f4f6" }],
+  },
+  {
+    elementType: "labels.text.stroke",
+    stylers: [{ color: "#ffffff" }],
+  },
+  {
+    elementType: "labels.text.fill",
+    stylers: [{ color: "#374151" }],
+  },
+  {
+    featureType: "road",
+    elementType: "geometry",
+    stylers: [{ color: "#ffffff" }],
+  },
+  {
+    featureType: "water",
+    elementType: "geometry",
+    stylers: [{ color: "#e2e8f0" }],
+  },
+  {
+    featureType: "poi",
+    elementType: "geometry",
+    stylers: [{ color: "#f3f4f6" }],
+  },
+];
 
 export default function HomePage() {
+  const [privateEvents, setPrivateEvents] = useState<Event[]>([]);
   const [trendingEvents, setTrendingEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [markers, setMarkers] = useState<google.maps.Marker[]>([]);
+
+  const { isLoaded, loadError } = useLoadScript({
+    id: "google-map-script",
+    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
+    libraries: GOOGLE_MAPS_LIBRARIES,
+  });
 
   useEffect(() => {
     getPrivateEvents()
       .then((data) => {
         console.log(data);
-        // For demonstration, we'll assume the first 5 events are trending
+        setPrivateEvents(data);
         setTrendingEvents(data.slice(0, 5));
         setIsLoading(false);
       })
@@ -26,6 +79,81 @@ export default function HomePage() {
       });
   }, []);
 
+  const onMapLoad = (map: google.maps.Map) => {
+    map.setOptions({
+      styles: mapStyle,
+      zoomControl: true,
+      mapTypeControl: false,
+      scaleControl: true,
+      streetViewControl: false,
+      rotateControl: false,
+      fullscreenControl: false,
+    });
+
+    privateEvents.forEach((event) => {
+      const lat = parseFloat(event.latitude.toString());
+      const lng = parseFloat(event.longitude.toString());
+      if (!isNaN(lat) && !isNaN(lng)) {
+        const position = { lat, lng };
+
+        const marker = new google.maps.Marker({
+          position,
+          map,
+          title: event.title,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#2563eb",
+            fillOpacity: 1,
+            strokeColor: "#ffffff",
+            strokeWeight: 2,
+          },
+        });
+
+        const infoWindow = new google.maps.InfoWindow({
+          content: `
+            <div style="
+              padding: 12px;
+              max-width: 200px;
+              color: #374151;
+              background-color: #ffffff;
+              border-radius: 6px;
+              font-family: system-ui, -apple-system, sans-serif;
+            ">
+              <h3 style="
+                margin: 0 0 8px;
+                font-weight: 600;
+                font-size: 16px;
+                color: #111827;
+              ">${event.title}</h3>
+              <p style="
+                margin: 0;
+                font-size: 14px;
+                line-height: 1.5;
+              ">${event.description}</p>
+            </div>
+          `,
+        });
+
+        marker.addListener("click", () => {
+          infoWindow.open(map, marker);
+        });
+
+        setMarkers((prev) => [...prev, marker]);
+      }
+    });
+  };
+
+  useEffect(() => {
+    return () => {
+      markers.forEach((marker) => marker.setMap(null));
+    };
+  }, [markers]);
+
+  if (loadError) {
+    return <div>Erreur de chargement de la carte : {loadError.message}</div>;
+  }
+
   return (
     <MainContent>
       <h1 className="text-3xl font-bold mb-6">Tableau de bord</h1>
@@ -35,13 +163,20 @@ export default function HomePage() {
           <CardTitle>Carte des événements en France</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-            <div className="absolute inset-0 bg-muted flex items-center justify-center">
-              <p className="text-muted-foreground">
-                Placeholder pour la carte Google Maps
-              </p>
+          {isLoaded ? (
+            <div className="rounded-lg overflow-hidden border border-border">
+              <GoogleMap
+                mapContainerStyle={mapContainerStyle}
+                center={center}
+                zoom={6}
+                onLoad={onMapLoad}
+              />
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center justify-center h-[400px] bg-muted rounded-lg">
+              <p className="text-muted-foreground">Chargement de la carte...</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

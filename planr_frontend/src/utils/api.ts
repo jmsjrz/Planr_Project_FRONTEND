@@ -282,3 +282,8 @@ export const searchEvents = async (searchQuery: string) => {
 
 // Exporter l'instance 'api' configurée
 export default api;
+
+// constantes partagées de l'API Google Maps
+import { Libraries } from "@react-google-maps/api";
+
+export const GOOGLE_MAPS_LIBRARIES: Libraries = ["places"];
