@@ -44,8 +44,8 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { CalendarIcon, Upload, Clock, XCircleIcon } from "lucide-react";
 import { createPrivateEvent } from "@/utils/api";
-import { useLoadScript, StandaloneSearchBox } from "@react-google-maps/api";
-import { GOOGLE_MAPS_LIBRARIES } from "@/utils/api";
+import { StandaloneSearchBox } from "@react-google-maps/api";
+import { useGoogleMaps } from "@/context/MapContext";
 
 interface FormData {
   title: string;
@@ -92,16 +92,11 @@ export default function EventCreationDrawer({
     x: 0,
     y: 21.875,
   });
+  const { isLoaded } = useGoogleMaps();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const autocompleteRef = useRef<google.maps.places.SearchBox | null>(null);
-
-  const { isLoaded } = useLoadScript({
-    id: "google-map-script",
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: GOOGLE_MAPS_LIBRARIES,
-  });
 
   const form = useForm<FormData>({
     defaultValues: {
