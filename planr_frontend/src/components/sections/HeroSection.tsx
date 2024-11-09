@@ -15,7 +15,7 @@ export function HeroSection() {
       </Button>
       <div className="mt-12">
         <img
-          src="/placeholder.svg"
+          src="event_picture.jpg"
           alt="Aperçu de l'application Planr"
           className="rounded-lg shadow-xl mx-auto"
         />
